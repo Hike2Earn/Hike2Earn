@@ -6,15 +6,14 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Bell, Wallet, Menu, X, Mountain, BarChart3, Users, Trophy } from "lucide-react"
+import { Bell, Menu, X, Mountain, BarChart3, Trophy } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { WalletButton } from "./wallet-button"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Campaigns", href: "/campaigns", icon: Trophy },
   { name: "Climb", href: "/climb", icon: Mountain },
-  { name: "Social", href: "/social", icon: Users },
-  { name: "Wallet", href: "/wallet", icon: Wallet },
 ]
 
 export function DashboardHeader() {
@@ -55,10 +54,9 @@ export function DashboardHeader() {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
-            {/* Wallet Balance */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl">
-              <Wallet className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold">1,247 HIKE</span>
+            {/* Wallet Button */}
+            <div className="flex">
+              <WalletButton />
             </div>
 
             {/* Notifications */}
@@ -91,6 +89,11 @@ export function DashboardHeader() {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-white/10">
+            {/* Mobile Wallet Button */}
+            <div className="px-3 pb-4">
+              <WalletButton />
+            </div>
+            
             <nav className="flex flex-col gap-2">
               {navigation.map((item) => {
                 const Icon = item.icon

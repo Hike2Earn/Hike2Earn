@@ -145,6 +145,19 @@ const config: HardhatUserConfig = {
       url: "https://sepolia.mode.network",
       accounts: [deployerPrivateKey],
     },
+    // Flare Network
+    flare: {
+      url: "https://flare-api.flare.network/ext/C/rpc",
+      accounts: [deployerPrivateKey],
+      chainId: 14,
+      gasPrice: 25000000000, // 25 gwei
+    },
+    flareTestnet: {
+      url: "https://coston2-api.flare.network/ext/C/rpc",
+      accounts: [deployerPrivateKey],
+      chainId: 114,
+      gasPrice: 25000000000, // 25 gwei
+    },
   },
   // configuration for harhdat-verify plugin
   etherscan: {

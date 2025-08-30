@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, MapPin, Trophy, Plus, X, DollarSign } from "lucide-react"
+import { Calendar, MapPin, Trophy, Plus, X, DollarSign, Wallet, AlertCircle, Loader2, CheckCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useWallet } from "@/components/wallet-provider"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useHike2Earn } from "@/hooks/useHike2Earn"
 
 // Mountain data - this could be imported from a shared location
 const mendozaPeaks = [
@@ -21,43 +24,45 @@ const mendozaPeaks = [
   { id: 6, name: "Cerro Vallecitos", altitude: "5,462m", difficulty: "intermediate", reward: "900 HIKE" },
 ]
 
-// ERC20 token options
-const supportedTokens = [
-  { symbol: "USDC", name: "USD Coin", address: "0x..." },
-  { symbol: "USDT", name: "Tether", address: "0x..." },
-  { symbol: "WETH", name: "Wrapped ETH", address: "0x..." },
-  { symbol: "FLR", name: "Flare", address: "0x..." },
-]
 
 interface CampaignFormData {
   name: string
   description: string
   startDate: string
   endDate: string
-  prizePoolETH: string
+  prizePoolLSK: string
   selectedMountains: number[]
-  erc20Prizes: { token: string, amount: string }[]
 }
 
 interface CreateCampaignModalProps {
   isOpen: boolean
   onClose: () => void
-  onCreateCampaign: (campaignData: any) => void
+  onCreateCampaign: (campaignData: any) => Promise<{success: boolean, campaignId?: string, error?: string}>
 }
 
 export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: CreateCampaignModalProps) {
+  const { isConnected, address, connectWallet } = useWallet()
+  const { 
+    createCampaign, 
+    isLoading: contractLoading, 
+    error: contractError, 
+    contractHealthy,
+    setError: setContractError
+  } = useHike2Earn()
+  
   const [formData, setFormData] = useState<CampaignFormData>({
     name: "",
     description: "",
     startDate: "",
     endDate: "",
-    prizePoolETH: "",
+    prizePoolLSK: "",
     selectedMountains: [],
-    erc20Prizes: [],
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [txHash, setTxHash] = useState<string>("")
+  const [creationStep, setCreationStep] = useState<'form' | 'validating' | 'creating' | 'success' | 'error'>('form')
 
   const handleInputChange = (field: keyof CampaignFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -75,28 +80,6 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
     }))
   }
 
-  const addERC20Prize = () => {
-    setFormData(prev => ({
-      ...prev,
-      erc20Prizes: [...prev.erc20Prizes, { token: "", amount: "" }]
-    }))
-  }
-
-  const removeERC20Prize = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      erc20Prizes: prev.erc20Prizes.filter((_, i) => i !== index)
-    }))
-  }
-
-  const updateERC20Prize = (index: number, field: "token" | "amount", value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      erc20Prizes: prev.erc20Prizes.map((prize, i) => 
-        i === index ? { ...prize, [field]: value } : prize
-      )
-    }))
-  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -111,8 +94,8 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
       newErrors.endDate = "End date must be after start date"
     }
 
-    if (!formData.prizePoolETH && formData.erc20Prizes.every(prize => !prize.amount)) {
-      newErrors.prizes = "Add at least one prize (ETH or ERC20 tokens)"
+    if (!formData.prizePoolLSK || parseFloat(formData.prizePoolLSK) <= 0) {
+      newErrors.prizes = "LSK prize pool must be greater than 0"
     }
 
     setErrors(newErrors)
@@ -120,76 +103,232 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
   }
 
   const handleSubmit = async () => {
-    if (!validateForm()) return
+    console.log("🚀 Starting campaign creation process...")
 
-    setIsLoading(true)
+    // Clear previous errors
+    setErrors({})
+    setContractError(null)
+    setCreationStep('validating')
+
+    // Check wallet connection
+    if (!isConnected) {
+      setErrors({ wallet: "Please connect your wallet first" })
+      setCreationStep('error')
+      return
+    }
+
+    // Check contract health
+    if (!contractHealthy) {
+      setErrors({ contract: "Smart contract is not available. Please check your wallet connection and network." })
+      setCreationStep('error')
+      return
+    }
+
+    // Validate form
+    if (!validateForm()) {
+      setCreationStep('form')
+      return
+    }
+
     try {
-      // Convert form data to match Solidity struct format
-      const campaignData = {
-        name: formData.name,
-        description: formData.description,
-        startDate: Math.floor(new Date(formData.startDate).getTime() / 1000), // Convert to Unix timestamp
-        endDate: Math.floor(new Date(formData.endDate).getTime() / 1000),
-        prizePoolETH: formData.prizePoolETH ? parseFloat(formData.prizePoolETH) : 0,
-        mountainIds: formData.selectedMountains,
-        erc20Tokens: formData.erc20Prizes.filter(prize => prize.token && prize.amount).map(prize => prize.token),
-        erc20Amounts: formData.erc20Prizes.filter(prize => prize.token && prize.amount).map(prize => parseFloat(prize.amount)),
-        isActive: true,
-        prizeDistributed: false,
-        totalNFTsMinted: 0,
-        participants: [],
-      }
-
-      await onCreateCampaign(campaignData)
+      setIsLoading(true)
+      setCreationStep('creating')
+      setTxHash("")
       
-      // Reset form and close modal
-      setFormData({
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        prizePoolETH: "",
-        selectedMountains: [],
-        erc20Prizes: [],
-      })
-      onClose()
-    } catch (error) {
-      console.error("Failed to create campaign:", error)
+      console.log("📝 Creating campaign with data:", formData)
+      
+      // Convert dates to Unix timestamps
+      const startTimestamp = Math.floor(new Date(formData.startDate).getTime() / 1000)
+      const endTimestamp = Math.floor(new Date(formData.endDate).getTime() / 1000)
+      
+      console.log("🕒 Timestamps:", { startTimestamp, endTimestamp })
+      
+      // Create campaign using the hook (only name, startDate, endDate for basic version)
+      const transactionHash = await createCampaign(
+        formData.name,
+        startTimestamp,
+        endTimestamp
+      )
+      
+      if (transactionHash) {
+        console.log("✅ Campaign created successfully:", transactionHash)
+        setTxHash(transactionHash)
+        setCreationStep('success')
+        
+        // Also call the parent callback for UI updates
+        try {
+          const campaignData = {
+            name: formData.name,
+            description: formData.description,
+            startDate: startTimestamp,
+            endDate: endTimestamp,
+            prizePoolETH: formData.prizePoolLSK ? parseFloat(formData.prizePoolLSK) : 0,
+            mountainIds: formData.selectedMountains,
+          }
+          await onCreateCampaign(campaignData)
+        } catch (callbackError) {
+          console.warn("⚠️ Parent callback failed, but campaign was created successfully")
+        }
+        
+        // Reset form and close modal after showing success
+        setTimeout(() => {
+          resetForm()
+          onClose()
+        }, 3000)
+      } else {
+        throw new Error("Transaction failed - no hash returned")
+      }
+      
+    } catch (error: any) {
+      console.error("❌ Campaign creation failed:", error)
+      
+      let errorMessage = error.message || "Failed to create campaign"
+      
+      // Handle specific error cases
+      if (error.message?.includes("Transaction was rejected")) {
+        errorMessage = "You rejected the transaction. Please try again and confirm in your wallet."
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "You don't have enough funds to create this campaign. Please add more LSK to your wallet."
+      } else if (error.message?.includes("execution reverted")) {
+        errorMessage = "Campaign creation was rejected by the smart contract. Please check your inputs and try again."
+      } else if (error.message?.includes("Contract not available")) {
+        errorMessage = "Smart contract is not available. Please check your wallet connection and network."
+      }
+      
+      setErrors({ submit: errorMessage })
+      setCreationStep('error')
     } finally {
       setIsLoading(false)
     }
   }
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      prizePoolLSK: "",
+      selectedMountains: [],
+    })
+    setTxHash("")
+    setErrors({})
+    setCreationStep('form')
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-slate-900/95 backdrop-blur-xl border-white/10 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white text-xl">Create New Campaign</DialogTitle>
+          <DialogTitle className="text-slate-100 text-xl">Create New Campaign</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Wallet Status */}
+          {!isConnected ? (
+            <Alert className="bg-yellow-500/20 border-yellow-500/30">
+              <Wallet className="h-4 w-4" />
+              <AlertDescription className="text-yellow-200">
+                Connect your wallet to create campaigns.{" "}
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-yellow-200 underline"
+                  onClick={connectWallet}
+                >
+                  Connect Wallet
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="bg-green-500/20 border-green-500/30">
+              <Wallet className="h-4 w-4" />
+              <AlertDescription className="text-green-200">
+                Wallet connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Contract Status */}
+          {contractError && (
+            <Alert className="bg-red-500/20 border-red-500/30">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-red-200">
+                Contract Error: {contractError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!contractHealthy && isConnected && (
+            <Alert className="bg-yellow-500/20 border-yellow-500/30">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-yellow-200">
+                Smart contract is not available. Please check your network connection.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Creation Progress */}
+          {creationStep === 'validating' && (
+            <Alert className="bg-blue-500/20 border-blue-500/30">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertDescription className="text-blue-200">
+                Validating campaign data...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {creationStep === 'creating' && (
+            <Alert className="bg-blue-500/20 border-blue-500/30">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertDescription className="text-blue-200">
+                Creating campaign on blockchain... Please confirm the transaction in your wallet.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {creationStep === 'success' && txHash && (
+            <Alert className="bg-green-500/20 border-green-500/30">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription className="text-green-200">
+                🎉 Campaign created successfully! 
+                <br />Transaction: <code className="text-xs">{txHash.slice(0, 20)}...</code>
+                <br />This modal will close automatically in a few seconds.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Error Messages */}
+          {(errors.wallet || errors.submit || errors.contract) && creationStep === 'error' && (
+            <Alert className="bg-red-500/20 border-red-500/30">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-red-200">
+                {errors.wallet || errors.submit || errors.contract}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Basic Information */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name" className="text-white">Campaign Name</Label>
+              <Label htmlFor="name" className="text-slate-200">Campaign Name</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter campaign name..."
-                className="bg-white/5 border-white/10 text-white placeholder:text-muted-foreground"
+                className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
               />
               {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
             </div>
 
             <div>
-              <Label htmlFor="description" className="text-white">Description</Label>
+              <Label htmlFor="description" className="text-slate-200">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 placeholder="Describe your campaign goals, requirements, and details..."
-                className="min-h-[100px] bg-white/5 border-white/10 text-white placeholder:text-muted-foreground resize-none"
+                className="min-h-[100px] bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 resize-none"
               />
               {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
             </div>
@@ -207,7 +346,7 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
                 type="datetime-local"
                 value={formData.startDate}
                 onChange={(e) => handleInputChange("startDate", e.target.value)}
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-slate-800 border-slate-600 text-white"
               />
               {errors.startDate && <p className="text-red-400 text-sm mt-1">{errors.startDate}</p>}
             </div>
@@ -222,7 +361,7 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
                 type="datetime-local"
                 value={formData.endDate}
                 onChange={(e) => handleInputChange("endDate", e.target.value)}
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-slate-800 border-slate-600 text-white"
               />
               {errors.endDate && <p className="text-red-400 text-sm mt-1">{errors.endDate}</p>}
             </div>
@@ -262,76 +401,21 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
 
             {/* ETH Prize */}
             <div>
-              <Label htmlFor="ethPrize" className="text-white text-sm">ETH Prize Pool</Label>
+              <Label htmlFor="lskPrize" className="text-slate-200 text-sm">LSK Prize Pool</Label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  id="ethPrize"
+                  id="lskPrize"
                   type="number"
                   step="0.001"
-                  value={formData.prizePoolETH}
-                  onChange={(e) => handleInputChange("prizePoolETH", e.target.value)}
-                  placeholder="0.0"
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-muted-foreground"
+                  value={formData.prizePoolLSK}
+                  onChange={(e) => handleInputChange("prizePoolLSK", e.target.value)}
+                  placeholder="Enter amount in LSK"
+                  className="pl-10 bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
                 />
               </div>
             </div>
 
-            {/* ERC20 Tokens */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-white text-sm">ERC20 Token Prizes</Label>
-                <Button
-                  type="button"
-                  onClick={addERC20Prize}
-                  size="sm"
-                  variant="outline"
-                  className="bg-white/5 border-white/10 hover:bg-white/10"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Token
-                </Button>
-              </div>
-
-              {formData.erc20Prizes.map((prize, index) => (
-                <div key={index} className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Select
-                      value={prize.token}
-                      onValueChange={(value) => updateERC20Prize(index, "token", value)}
-                    >
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select token" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {supportedTokens.map((token) => (
-                          <SelectItem key={token.symbol} value={token.address}>
-                            {token.symbol} - {token.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex-1">
-                    <Input
-                      type="number"
-                      value={prize.amount}
-                      onChange={(e) => updateERC20Prize(index, "amount", e.target.value)}
-                      placeholder="Amount"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-muted-foreground"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => removeERC20Prize(index)}
-                    size="icon"
-                    variant="destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
             {errors.prizes && <p className="text-red-400 text-sm mt-1">{errors.prizes}</p>}
           </div>
 
@@ -340,16 +424,25 @@ export function CreateCampaignModal({ isOpen, onClose, onCreateCampaign }: Creat
             <Button
               onClick={onClose}
               variant="outline"
-              className="bg-white/5 border-white/10 hover:bg-white/10"
+              className="bg-slate-800 border-slate-600 hover:bg-slate-700"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isLoading}
-              className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600"
+              disabled={isLoading || !isConnected || !contractHealthy || creationStep === 'success'}
+              className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 disabled:opacity-50"
             >
-              {isLoading ? "Creating..." : "Create Campaign"}
+              {creationStep === 'validating' && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {creationStep === 'creating' && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {creationStep === 'success' && <CheckCircle className="w-4 h-4 mr-2" />}
+              
+              {creationStep === 'validating' ? "Validating..." :
+               creationStep === 'creating' ? "Creating on Blockchain..." :
+               creationStep === 'success' ? "Campaign Created!" :
+               !isConnected ? "Connect Wallet First" :
+               !contractHealthy ? "Contract Unavailable" :
+               "Create Campaign"}
             </Button>
           </div>
         </div>

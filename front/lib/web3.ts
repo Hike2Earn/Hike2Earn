@@ -1,4 +1,7 @@
 import { ethers } from "ethers"
+import { CONTRACT_ADDRESSES, SUPPORTED_NETWORKS, getCurrentNetwork } from "./contracts"
+import HIKE2EARN_ARTIFACT from "./Hike2Earn.json"
+import { getBestProvider, connectWithFallback, logWalletEnvironment, getErrorMessage, diagnoseWalletEnvironment, type WalletProvider } from "./wallet-utils"
 
 export interface ClimbData {
   id: string
@@ -77,99 +80,156 @@ export interface Campaign {
   participants: string[]
 }
 
-// Flare Network configuration
-export const FLARE_NETWORK_CONFIG = {
-  chainId: 14, // Flare Mainnet
-  name: "Flare Network",
-  currency: "FLR",
-  rpcUrl: "https://flare-api.flare.network/ext/C/rpc",
-  blockExplorer: "https://flare-explorer.flare.network",
-  ftsoRegistry: "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019",
-  stateConnector: "0x1000000000000000000000000000000000000001",
+// Lisk Network configuration
+export const LISK_NETWORK_CONFIG = SUPPORTED_NETWORKS.LISK_MAINNET
+
+// Additional Lisk-specific contracts
+export const LISK_CONTRACTS = {
+  // Add Lisk-specific contract addresses when available
 }
 
 // HIKE Token contract configuration
 export const HIKE_TOKEN_CONFIG = {
-  address: "0x...", // Contract address will be deployed
+  address: "", // No contract deployed yet, will use mock balance
   decimals: 18,
   symbol: "HIKE",
 }
 
-// Campaign contract configuration
-export const CAMPAIGN_CONTRACT_CONFIG = {
-  address: "0x...", // Campaign contract address will be deployed
-  abi: [
-    "function createCampaign(string memory _name, uint256 _startDate, uint256 _endDate, uint256[] memory _mountainIds, address[] memory _erc20Tokens) external payable returns (uint256)",
-    "function joinCampaign(uint256 _campaignId) external",
-    "function startClimb(uint256 _campaignId, uint256 _mountainId) external",
-    "function completeCampaign(uint256 _campaignId) external",
-    "function distributePrizes(uint256 _campaignId) external",
-    "function getCampaign(uint256 _campaignId) external view returns (tuple(string name, uint256 startDate, uint256 endDate, uint256 prizePoolETH, uint256[] mountainIds, address[] participants, bool isActive, bool prizeDistributed, uint256 totalNFTsMinted))",
-    "function getCampaignCount() external view returns (uint256)",
-    "function userCampaigns(address user) external view returns (uint256[])",
-    "event CampaignCreated(uint256 indexed campaignId, string name, address indexed creator)",
-    "event CampaignJoined(uint256 indexed campaignId, address indexed participant)",
-    "event ClimbStarted(uint256 indexed campaignId, address indexed climber, uint256 mountainId)",
-    "event CampaignCompleted(uint256 indexed campaignId, address indexed participant)",
-    "event PrizesDistributed(uint256 indexed campaignId, uint256 totalPrizes)"
-  ]
+// Hike2Earn contract configuration (matching the smart contract)
+export const HIKE2EARN_CONTRACT_CONFIG = {
+  address: CONTRACT_ADDRESSES.HIKE2EARN, // Contract address from contracts.ts
+  abi: (HIKE2EARN_ARTIFACT as any).abi
 }
 
-// Connect to Flare Network
-export const connectWallet = async (): Promise<string | null> => {
+// Get the correct ethereum provider (handles multiple wallets with advanced conflict resolution)
+const getEthereumProvider = (): WalletProvider | null => {
   if (typeof window === "undefined") {
+    console.log("🏢 Server-side rendering - no provider available")
+    return null
+  }
+  
+  // Log environment for debugging
+  logWalletEnvironment()
+  
+  // Use the advanced provider detection
+  const bestProvider = getBestProvider()
+  
+  if (!bestProvider) {
+    console.warn("❌ No suitable wallet provider found")
+    return null
+  }
+  
+  const diagnostic = diagnoseWalletEnvironment()
+  
+  // Show warnings for potential issues
+  if (diagnostic.conflicts.length > 0) {
+    console.warn("⚠️ Wallet conflicts detected:", diagnostic.conflicts)
+  }
+  
+  if (diagnostic.recommendations.length > 0) {
+    console.info("💡 Recommendations:", diagnostic.recommendations)
+  }
+  
+  return bestProvider
+}
+
+// Connect to Lisk Network with advanced error handling
+export const connectWallet = async (): Promise<string | null> => {
+  console.log("🔌 web3.connectWallet() called")
+  
+  if (typeof window === "undefined") {
+    console.log("❌ Window is undefined (SSR)")
     return null
   }
 
-  // Check if MetaMask or other wallet is installed
-  if (!window.ethereum) {
-    console.warn("No wallet extension detected")
+  const ethereum = getEthereumProvider()
+
+  if (!ethereum) {
+    console.warn("❌ No wallet extension detected")
+    const diagnostic = diagnoseWalletEnvironment()
+    
+    if (diagnostic.recommendations.length > 0) {
+      console.info("💡 Suggestions:", diagnostic.recommendations)
+    }
+    
     return null
   }
+
+  console.log("✅ Ethereum provider ready for connection")
 
   try {
-    // Request accounts using the standard method
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    })
+    console.log("📞 Requesting accounts from wallet using advanced fallback...")
+    
+    // Use the advanced connection method with fallbacks
+    const accounts = await connectWithFallback(ethereum)
+
+    console.log("📋 Accounts received:", accounts)
 
     if (!accounts || accounts.length === 0) {
-      throw new Error("No accounts found")
+      console.error("❌ No accounts found in response")
+      throw new Error("No accounts found. Please unlock your wallet and try again.")
     }
 
-    // Only check current network without forcing a switch
+    const connectedAccount = accounts[0]
+    console.log("✅ Successfully connected to account:", connectedAccount)
+
+    // Check network but don't block connection
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum)
+      const provider = new ethers.BrowserProvider(ethereum)
       const network = await provider.getNetwork()
       const currentChainId = Number(network.chainId)
 
-      if (currentChainId !== FLARE_NETWORK_CONFIG.chainId) {
-        console.log(`Connected to chain ${currentChainId}, Flare Network is ${FLARE_NETWORK_CONFIG.chainId}`)
-        // Don't throw error - just log for user awareness
+      if (currentChainId !== LISK_NETWORK_CONFIG.chainId) {
+        console.log(`ℹ️ Connected to chain ${currentChainId}, target is Lisk (${LISK_NETWORK_CONFIG.chainId})`)
+        // Just log - don't block connection
+      } else {
+        console.log("✅ Connected to correct network (Lisk)")
       }
     } catch (networkError) {
-      console.warn("Could not check network:", networkError)
+      console.warn("⚠️ Could not check network:", networkError)
       // Continue with connection even if network check fails
     }
 
-    return accounts[0]
+    return connectedAccount
   } catch (error: any) {
-    console.error("Wallet connection failed:", error)
+    console.error("❌ Wallet connection failed:", error)
 
+    // Get user-friendly error message
+    const errorInfo = getErrorMessage(error)
+    console.error("📝 Error details:", errorInfo)
+
+    // Throw error with enhanced message
     if (error.code === 4001) {
       throw new Error("User rejected the connection request")
     } else if (error.code === -32002) {
       throw new Error("Wallet connection request is already pending. Please check your wallet.")
     } else if (error.message?.includes("timeout")) {
       throw new Error("Wallet connection timed out. Please try again.")
+    } else if (error.message?.includes("selectExtension") || error.message?.includes("Unexpected error")) {
+      throw new Error("Unable to connect to wallet. Multiple wallet extensions detected. Please disable other wallets and keep only MetaMask enabled.")
     } else {
-      throw new Error("Failed to connect wallet. Please refresh and try again.")
+      throw new Error(`Failed to connect wallet: ${error.message || 'Unknown error'}. Please refresh and try again.`)
     }
   }
 }
 
 export const isWalletAvailable = (): boolean => {
-  return typeof window !== "undefined" && !!window.ethereum
+  if (typeof window === "undefined") {
+    console.log("🏢 Server-side rendering detected")
+    return false
+  }
+
+  console.log("🔍 Checking wallet availability...")
+  console.log("🔹 window.ethereum exists:", !!window.ethereum)
+  console.log("🔹 window.ethereum type:", typeof window.ethereum)
+  
+  if (window.ethereum) {
+    console.log("🔹 window.ethereum.isMetaMask:", window.ethereum.isMetaMask)
+    console.log("🔹 window.ethereum.isPhantom:", window.ethereum.isPhantom)
+    console.log("🔹 window.ethereum.providers length:", window.ethereum.providers?.length || "no providers")
+  }
+
+  return !!window.ethereum
 }
 
 export const getCurrentAccount = async (): Promise<string | null> => {
@@ -189,7 +249,7 @@ export const getCurrentAccount = async (): Promise<string | null> => {
 // Get user's HIKE token balance
 export const getHikeTokenBalance = async (address: string): Promise<number> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && HIKE_TOKEN_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE_TOKEN_CONFIG.address && HIKE_TOKEN_CONFIG.address !== "") {
       const provider = new ethers.BrowserProvider(window.ethereum)
       const tokenABI = [
         "function balanceOf(address owner) view returns (uint256)",
@@ -205,7 +265,7 @@ export const getHikeTokenBalance = async (address: string): Promise<number> => {
     console.error("Failed to get HIKE token balance:", error)
   }
 
-  // Return mock balance for demo
+  // Return mock balance for demo (since no token contract is deployed yet)
   return Math.floor(Math.random() * 10000) + 1000
 }
 
@@ -271,7 +331,7 @@ export const getFTSOPrice = async (symbol: string): Promise<number> => {
       "function getCurrentPrice(string memory _symbol) external view returns (uint256 _price, uint256 _timestamp, uint256 _decimals)",
     ]
 
-    const ftsoRegistry = new ethers.Contract(FLARE_NETWORK_CONFIG.ftsoRegistry, ftsoRegistryABI, provider)
+    const ftsoRegistry = new ethers.Contract(FLARE_CONTRACTS.ftsoRegistry, ftsoRegistryABI, provider)
 
     const [price, , decimals] = await ftsoRegistry.getCurrentPrice(symbol)
     return Number(price) / Math.pow(10, Number(decimals))
@@ -381,26 +441,21 @@ export const mintAchievementNFT = async (achievementData: Partial<NFTBadge>): Pr
 // Create a new campaign on the smart contract
 export const createCampaignOnChain = async (campaignData: Omit<Campaign, 'id' | 'participants'>): Promise<string | null> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE2EARN_CONTRACT_CONFIG.address) {
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
+      const hike2EarnContract = new ethers.Contract(
+        HIKE2EARN_CONTRACT_CONFIG.address, 
+        HIKE2EARN_CONTRACT_CONFIG.abi, 
         signer
       )
 
-      // Convert ETH to Wei
-      const prizePoolWei = ethers.parseEther(campaignData.prizePoolETH.toString())
-
-      const tx = await campaignContract.createCampaign(
+      // Create campaign with basic info first
+      const tx = await hike2EarnContract.createCampaign(
         campaignData.name,
         campaignData.startDate,
-        campaignData.endDate,
-        campaignData.mountainIds,
-        campaignData.erc20Tokens,
-        { value: prizePoolWei }
+        campaignData.endDate
       )
 
       const receipt = await tx.wait()
@@ -408,6 +463,65 @@ export const createCampaignOnChain = async (campaignData: Omit<Campaign, 'id' | 
       // Extract campaign ID from events
       const event = receipt.logs.find((log: any) => log.fragment?.name === 'CampaignCreated')
       const campaignId = event ? event.args[0].toString() : null
+
+      if (!campaignId) {
+        throw new Error("Failed to get campaign ID from transaction")
+      }
+
+      // Add mountains to the campaign
+      for (const mountainId of campaignData.mountainIds) {
+        // Get mountain data (this would typically come from a database)
+        const mountainData = getMountainData(mountainId)
+        if (mountainData) {
+          const addMountainTx = await hike2EarnContract.addMountain(
+            campaignId,
+            mountainData.name,
+            mountainData.altitude,
+            mountainData.location
+          )
+          await addMountainTx.wait()
+        }
+      }
+
+      // If there's an ETH prize pool, sponsor the campaign
+      if (campaignData.prizePoolETH > 0) {
+        const sponsorTx = await hike2EarnContract.sponsorCampaign(
+          campaignId,
+          "Campaign Creator", // Default sponsor name
+          "", // No logo URI for now
+          { value: ethers.parseEther(campaignData.prizePoolETH.toString()) }
+        )
+        await sponsorTx.wait()
+      }
+
+      // Handle ERC20 token prizes if any
+      for (let i = 0; i < campaignData.erc20Tokens.length; i++) {
+        const tokenAddress = campaignData.erc20Tokens[i]
+        const tokenAmount = campaignData.erc20Amounts[i]
+        
+        if (tokenAmount > 0) {
+          // First approve the contract to spend tokens
+          const tokenContract = new ethers.Contract(
+            tokenAddress,
+            ["function approve(address spender, uint256 amount) external returns (bool)"],
+            signer
+          )
+          
+          const approveTx = await tokenContract.approve(
+            HIKE2EARN_CONTRACT_CONFIG.address,
+            ethers.parseUnits(tokenAmount.toString(), 18) // Assuming 18 decimals
+          )
+          await approveTx.wait()
+          
+          // Sponsor with ERC20 token
+          const sponsorERC20Tx = await hike2EarnContract.sponsorCampaignERC20(
+            campaignId,
+            tokenAddress,
+            ethers.parseUnits(tokenAmount.toString(), 18)
+          )
+          await sponsorERC20Tx.wait()
+        }
+      }
 
       return campaignId
     }
@@ -420,62 +534,71 @@ export const createCampaignOnChain = async (campaignData: Omit<Campaign, 'id' | 
   return `mock-${Date.now()}`
 }
 
-// Join a campaign
-export const joinCampaignOnChain = async (campaignId: string): Promise<boolean> => {
-  try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const signer = await provider.getSigner()
-
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
-        signer
-      )
-
-      const tx = await campaignContract.joinCampaign(campaignId)
-      await tx.wait()
-
-      return true
-    }
-  } catch (error) {
-    console.error("Failed to join campaign:", error)
-    throw error
+// Helper function to get mountain data
+function getMountainData(mountainId: number) {
+  const mountainsData = {
+    1: { name: "Aconcagua", altitude: 6962, location: "Mendoza, Argentina" },
+    2: { name: "Cerro Mercedario", altitude: 6770, location: "Mendoza, Argentina" },
+    3: { name: "Cerro Tupungato", altitude: 6570, location: "Mendoza, Argentina" },
+    4: { name: "Cerro Plata", altitude: 6100, location: "Mendoza, Argentina" },
+    5: { name: "Cerro El Plomo", altitude: 5424, location: "Mendoza, Argentina" },
+    6: { name: "Cerro Vallecitos", altitude: 5462, location: "Mendoza, Argentina" },
   }
-
-  return true // Mock success
+  
+  return mountainsData[mountainId as keyof typeof mountainsData] || null
 }
 
-// Start a climb for a specific campaign and mountain
-export const startClimbOnChain = async (campaignId: string, mountainId: number): Promise<boolean> => {
+// Mint NFT for mountain climb (replaces joinCampaignOnChain)
+export const mintClimbingNFT = async (mountainId: number, proofURI: string): Promise<string | null> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE2EARN_CONTRACT_CONFIG.address) {
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
+      const hike2EarnContract = new ethers.Contract(
+        HIKE2EARN_CONTRACT_CONFIG.address, 
+        HIKE2EARN_CONTRACT_CONFIG.abi, 
         signer
       )
 
-      const tx = await campaignContract.startClimb(campaignId, mountainId)
-      await tx.wait()
+      const tx = await hike2EarnContract.mintClimbingNFT(mountainId, proofURI)
+      const receipt = await tx.wait()
+      
+      // Extract token ID from events
+      const event = receipt.logs.find((log: any) => log.fragment?.name === 'NFTMinted')
+      const tokenId = event ? event.args[0].toString() : null
 
-      return true
+      return tokenId
     }
   } catch (error) {
-    console.error("Failed to start climb:", error)
+    console.error("Failed to mint climbing NFT:", error)
     throw error
   }
 
-  return true // Mock success
+  return `mock-token-${Date.now()}` // Mock success
+}
+
+// Compatibility function for campaign-utils.ts
+export const joinCampaignOnChain = async (campaignId: string): Promise<boolean> => {
+  // In the new contract model, users join by minting NFTs after climbing
+  // This function is kept for backward compatibility but will always return true
+  console.log("joinCampaignOnChain called for campaign:", campaignId)
+  console.log("Note: In Hike2Earn contract, users join by minting climbing NFTs")
+  return true
+}
+
+// Start a climb for a specific campaign and mountain (compatibility function)
+export const startClimbOnChain = async (campaignId: string, mountainId: number): Promise<boolean> => {
+  // In the new contract model, climbing is tracked via NFT minting
+  console.log("startClimbOnChain called for campaign:", campaignId, "mountain:", mountainId)
+  console.log("Note: In Hike2Earn contract, climbs are tracked via mintClimbingNFT")
+  return true
 }
 
 // Complete a campaign and trigger NFT minting
 export const completeCampaignOnChain = async (campaignId: string, climbData: ClimbData): Promise<boolean> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE2EARN_CONTRACT_CONFIG.address) {
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
@@ -486,14 +609,18 @@ export const completeCampaignOnChain = async (campaignId: string, climbData: Cli
         throw new Error("Climb verification failed")
       }
 
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
+      const hike2EarnContract = new ethers.Contract(
+        HIKE2EARN_CONTRACT_CONFIG.address, 
+        HIKE2EARN_CONTRACT_CONFIG.abi, 
         signer
       )
 
-      // Complete the campaign
-      const tx = await campaignContract.completeCampaign(campaignId)
+      // In the new contract, completion is handled via NFT minting with proof
+      // Find the mountain ID based on the climb data
+      const mountainId = 1 // This would need proper mapping
+      const proofURI = `ipfs://proof-${Date.now()}` // This would be actual IPFS URI
+      
+      const tx = await hike2EarnContract.mintClimbingNFT(mountainId, proofURI)
       await tx.wait()
 
       // Mint achievement NFT
@@ -524,17 +651,20 @@ export const completeCampaignOnChain = async (campaignId: string, climbData: Cli
 // Get campaign data from smart contract
 export const getCampaignFromChain = async (campaignId: string): Promise<Campaign | null> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE2EARN_CONTRACT_CONFIG.address) {
       const provider = new ethers.BrowserProvider(window.ethereum)
 
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
+      const hike2EarnContract = new ethers.Contract(
+        HIKE2EARN_CONTRACT_CONFIG.address, 
+        HIKE2EARN_CONTRACT_CONFIG.abi, 
         provider
       )
 
-      const campaignData = await campaignContract.getCampaign(campaignId)
+      const campaignData = await hike2EarnContract.getCampaignInfo(campaignId)
 
+      // Get campaign mountains (we'd need to track this separately or query events)
+      const mountainIds: number[] = []
+      
       return {
         id: campaignId,
         name: campaignData.name,
@@ -542,13 +672,13 @@ export const getCampaignFromChain = async (campaignId: string): Promise<Campaign
         startDate: Number(campaignData.startDate),
         endDate: Number(campaignData.endDate),
         prizePoolETH: Number(ethers.formatEther(campaignData.prizePoolETH)),
-        mountainIds: campaignData.mountainIds.map((id: any) => Number(id)),
-        erc20Tokens: [],
-        erc20Amounts: [],
+        mountainIds: mountainIds,
+        erc20Tokens: [], // Would need to query separately
+        erc20Amounts: [], // Would need to query separately
         isActive: campaignData.isActive,
         prizeDistributed: campaignData.prizeDistributed,
-        totalNFTsMinted: Number(campaignData.totalNFTsMinted),
-        participants: campaignData.participants
+        totalNFTsMinted: 0, // Would need to get from campaign struct
+        participants: [] // Would need to query separately
       }
     }
   } catch (error) {
@@ -558,23 +688,23 @@ export const getCampaignFromChain = async (campaignId: string): Promise<Campaign
   return null
 }
 
-// Get user's campaigns
-export const getUserCampaigns = async (userAddress: string): Promise<string[]> => {
+// Get user's NFTs
+export const getUserNFTs = async (userAddress: string): Promise<number[]> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE2EARN_CONTRACT_CONFIG.address) {
       const provider = new ethers.BrowserProvider(window.ethereum)
 
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
+      const hike2EarnContract = new ethers.Contract(
+        HIKE2EARN_CONTRACT_CONFIG.address, 
+        HIKE2EARN_CONTRACT_CONFIG.abi, 
         provider
       )
 
-      const campaignIds = await campaignContract.userCampaigns(userAddress)
-      return campaignIds.map((id: any) => id.toString())
+      const nftIds = await hike2EarnContract.getParticipantNFTs(userAddress)
+      return nftIds.map((id: any) => Number(id))
     }
   } catch (error) {
-    console.error("Failed to get user campaigns:", error)
+    console.error("Failed to get user NFTs:", error)
   }
 
   return []
@@ -583,17 +713,17 @@ export const getUserCampaigns = async (userAddress: string): Promise<string[]> =
 // Distribute prizes for a completed campaign
 export const distributeCampaignPrizes = async (campaignId: string): Promise<boolean> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+    if (typeof window !== "undefined" && window.ethereum && HIKE2EARN_CONTRACT_CONFIG.address) {
       const provider = new ethers.BrowserProvider(window.ethereum)
       const signer = await provider.getSigner()
 
-      const campaignContract = new ethers.Contract(
-        CAMPAIGN_CONTRACT_CONFIG.address, 
-        CAMPAIGN_CONTRACT_CONFIG.abi, 
+      const hike2EarnContract = new ethers.Contract(
+        HIKE2EARN_CONTRACT_CONFIG.address, 
+        HIKE2EARN_CONTRACT_CONFIG.abi, 
         signer
       )
 
-      const tx = await campaignContract.distributePrizes(campaignId)
+      const tx = await hike2EarnContract.distributePrizes(campaignId)
       await tx.wait()
 
       return true

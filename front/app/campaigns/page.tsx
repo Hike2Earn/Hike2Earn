@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MountainBackground } from "@/components/mountain-background"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mountain, Calendar, Users, Trophy, MapPin, Clock, Search, Filter, Plus } from "lucide-react"
+import { Mountain, Calendar, Users, Trophy, MapPin, Clock, Search, Plus, Wallet } from "lucide-react"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
 import { createCampaign } from "@/lib/campaign-utils"
+import { useHike2Earn } from "@/hooks/useHike2Earn"
+import { useWallet } from "@/components/wallet-provider"
+import { ContractStatus } from "@/components/contract-status"
 import Link from "next/link"
 
 interface Campaign {
@@ -25,6 +28,15 @@ interface Campaign {
   reward: number
   image: string
   elevation: string
+}
+
+interface CreateCampaignData {
+  name: string
+  description: string
+  startDate: number
+  endDate: number
+  prizePoolETH: number
+  mountainIds?: number[]
 }
 
 const allCampaigns: Campaign[] = [
@@ -152,9 +164,63 @@ export default function CampaignsPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [userCampaigns, setUserCampaigns] = useState<Campaign[]>([])
+  const [contractCampaigns, setContractCampaigns] = useState<Campaign[]>([])
+  
+  const { isConnected } = useWallet()
+  const { 
+    getAllCampaigns, 
+    isLoading: contractLoading,
+    error: contractError,
+    contractHealthy
+  } = useHike2Earn()
 
-  // Combine default campaigns with user-created campaigns
-  const allAvailableCampaigns = [...allCampaigns, ...userCampaigns]
+  // Load campaigns from contract
+  useEffect(() => {
+    const loadContractCampaigns = async () => {
+      if (isConnected && contractHealthy) {
+        console.log("📊 Loading campaigns from contract...")
+        try {
+          const campaigns = await getAllCampaigns()
+          console.log("📊 Received campaigns from contract:", campaigns.length)
+          
+          // Convert contract campaigns to UI format
+          const formattedCampaigns: Campaign[] = campaigns.map((campaign) => ({
+            id: `contract-${campaign.id}`,
+            title: campaign.name || `Campaign #${campaign.id}`,
+            description: `Smart contract campaign with ${campaign.prizePoolETH} LSK prize pool. Join by completing mountain climbs and earning NFTs!`,
+            type: "summit" as const,
+            difficulty: "intermediate" as const,
+            mountain: "Blockchain Mountain",
+            location: "Lisk Network",
+            startDate: new Date(campaign.startDate * 1000).toISOString().split('T')[0],
+            endDate: new Date(campaign.endDate * 1000).toISOString().split('T')[0],
+            duration: Math.ceil((campaign.endDate - campaign.startDate) / (24 * 60 * 60)) + " days",
+            participants: campaign.participantCount,
+            maxParticipants: Math.max(campaign.participantCount + 10, 20), // Estimate
+            reward: parseFloat(campaign.prizePoolETH) * 1000, // Convert LSK to HIKE tokens (example rate)
+            image: "/campaigns/contract-campaign.jpg",
+            elevation: "Variable"
+          }))
+          
+          setContractCampaigns(formattedCampaigns)
+          console.log("✅ Contract campaigns loaded successfully:", formattedCampaigns.length)
+        } catch (error) {
+          console.error("❌ Error loading contract campaigns:", error)
+        }
+      } else if (isConnected && !contractHealthy) {
+        console.warn("⚠️ Contract not healthy, skipping campaign loading")
+        setContractCampaigns([])
+      } else {
+        console.log("ℹ️ Wallet not connected, clearing contract campaigns")
+        setContractCampaigns([])
+      }
+    }
+
+    loadContractCampaigns()
+  }, [isConnected, contractHealthy, getAllCampaigns])
+
+  // Combine default campaigns, user-created campaigns, and contract campaigns
+  const allAvailableCampaigns = [...allCampaigns, ...userCampaigns, ...contractCampaigns]
 
   const filteredCampaigns = allAvailableCampaigns.filter(campaign => {
     const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,7 +233,7 @@ export default function CampaignsPage() {
     return matchesSearch && matchesType && matchesDifficulty
   })
 
-  const handleCreateCampaign = async (campaignData: any) => {
+  const handleCreateCampaign = async (campaignData: CreateCampaignData): Promise<{success: boolean, campaignId?: string, error?: string}> => {
     try {
       // Use the campaign utilities for validation and creation
       const result = await createCampaign(campaignData)
@@ -183,7 +249,7 @@ export default function CampaignsPage() {
         description: campaignData.description,
         type: "summit", // Default type, could be derived from data
         difficulty: "intermediate", // Default difficulty, could be derived from mountain selection
-        mountain: campaignData.mountainIds?.length > 0 ? "Multiple Mountains" : "Custom Route",
+        mountain: (campaignData.mountainIds?.length || 0) > 0 ? "Multiple Mountains" : "Custom Route",
         location: "User Created",
         startDate: new Date(campaignData.startDate * 1000).toISOString().split('T')[0],
         endDate: new Date(campaignData.endDate * 1000).toISOString().split('T')[0],
@@ -197,9 +263,12 @@ export default function CampaignsPage() {
       
       setUserCampaigns(prev => [newCampaign, ...prev])
       
+      return { success: true, campaignId: result.campaignId }
+      
     } catch (error) {
       console.error("Failed to create campaign:", error)
-      throw error
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -216,18 +285,76 @@ export default function CampaignsPage() {
                 <Mountain className="w-8 h-8 text-primary" />
                 <h1 className="text-3xl font-bold text-gradient">Mountain Campaigns</h1>
               </div>
-              <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Campaign
-              </Button>
+              <div className="flex items-center gap-3">
+                {/* Contract Status */}
+                
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 disabled:opacity-50"
+                  disabled={!isConnected || !contractHealthy}
+                  title={
+                    !isConnected ? "Connect your wallet to create campaigns" :
+                    !contractHealthy ? "Smart contract not available" :
+                    "Create a new campaign"
+                  }
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {!isConnected ? "Connect Wallet" :
+                   !contractHealthy ? "Contract Unavailable" :
+                   "Create Campaign"}
+                </Button>
+              </div>
             </div>
             <p className="text-muted-foreground max-w-2xl">
               Join exciting mountaineering campaigns, help preserve our trails, or improve your skills. 
               Create your own campaigns and earn HIKE tokens and exclusive NFTs while exploring the most beautiful peaks in the Andes.
             </p>
+            
+            {/* Contract Status Info */}
+            {isConnected && contractHealthy && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-sm font-semibold text-green-400">Smart Contract Active</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Connected to Hike2Earn contract: <code className="text-xs bg-white/10 px-2 py-1 rounded">0xD9986E17F96e99D11330F72F90f78982b8F29570</code>
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Showing {contractCampaigns.length} contract campaigns and {allCampaigns.length} demo campaigns
+                  {contractLoading && <span className="ml-2 text-blue-400">Loading...</span>}
+                </p>
+              </div>
+            )}
+
+            {/* Contract Error */}
+            {isConnected && !contractHealthy && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-red-400 rounded-full" />
+                  <span className="text-sm font-semibold text-red-400">Smart Contract Issue</span>
+                </div>
+                <p className="text-sm text-red-300">
+                  {contractError || "Unable to connect to smart contract. Some features may be limited."}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Showing {allCampaigns.length} demo campaigns only
+                </p>
+              </div>
+            )}
+            
+            {/* Connection Prompt */}
+            {!isConnected && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wallet className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm font-semibold text-yellow-400">Wallet Not Connected</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Connect your wallet to view live contract campaigns and create new ones.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Filters */}
@@ -273,6 +400,14 @@ export default function CampaignsPage() {
             </div>
           </div>
 
+          {/* Contract Status (Debug Component - Remove in Production) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Debug: Contract Status</h2>
+              <ContractStatus />
+            </div>
+          )}
+
           {/* Campaigns Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCampaigns.map((campaign) => (
@@ -284,13 +419,23 @@ export default function CampaignsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     
                     {/* Badges */}
-                    <div className="absolute top-3 left-3 flex gap-2">
+                    <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
                       <Badge className={`text-xs ${typeColors[campaign.type]}`}>
                         {campaign.type.charAt(0).toUpperCase() + campaign.type.slice(1)}
                       </Badge>
                       <Badge className={`text-xs ${difficultyColors[campaign.difficulty]}`}>
                         {campaign.difficulty.charAt(0).toUpperCase() + campaign.difficulty.slice(1)}
                       </Badge>
+                      {campaign.id.startsWith('contract-') && (
+                        <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                          🔗 On-Chain
+                        </Badge>
+                      )}
+                      {campaign.id.startsWith('user-') && (
+                        <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+                          👤 User Created
+                        </Badge>
+                      )}
                     </div>
                     
                     {/* Mountain info overlay */}

@@ -1,4 +1,29 @@
+"use client"
+
+import { useState, useEffect } from "react"
+
 export function MountainBackground() {
+  const [mounted, setMounted] = useState(false)
+  const [particles, setParticles] = useState<Array<{
+    left: number
+    top: number
+    delay: number
+    duration: number
+  }>>([])
+
+  useEffect(() => {
+    // Generate particle positions only on client side
+    const newParticles = Array.from({ length: 20 }).map(() => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 5,
+      duration: 3 + Math.random() * 4,
+    }))
+    
+    setParticles(newParticles)
+    setMounted(true)
+  }, [])
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Animated mountain silhouettes */}
@@ -28,21 +53,23 @@ export function MountainBackground() {
         />
       </svg>
 
-      {/* Floating particles */}
-      <div className="absolute inset-0">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-primary/20 rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Floating particles - only render on client */}
+      {mounted && (
+        <div className="absolute inset-0">
+          {particles.map((particle, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-primary/20 rounded-full animate-pulse"
+              style={{
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animationDelay: `${particle.delay}s`,
+                animationDuration: `${particle.duration}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

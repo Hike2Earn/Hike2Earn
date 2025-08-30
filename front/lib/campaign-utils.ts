@@ -9,9 +9,9 @@ import { Campaign, createCampaignOnChain, joinCampaignOnChain, startClimbOnChain
 export const campaignCreationSchema = z.object({
   name: z.string().min(3, "Campaign name must be at least 3 characters").max(100, "Campaign name must be less than 100 characters"),
   description: z.string().min(10, "Description must be at least 10 characters").max(1000, "Description must be less than 1000 characters"),
-  startDate: z.number().min(Date.now() / 1000, "Start date must be in the future"),
+  startDate: z.number().min(Math.floor(Date.now() / 1000) - 86400, "Start date must be today or in the future"),
   endDate: z.number(),
-  prizePoolETH: z.number().min(0, "Prize pool must be positive").max(10, "Prize pool cannot exceed 10 ETH"),
+  prizePoolETH: z.number().min(0, "Prize pool must be positive").max(10, "Prize pool cannot exceed 10 LSK"),
   mountainIds: z.array(z.number()).min(1, "Select at least one mountain").max(10, "Cannot select more than 10 mountains"),
   erc20Tokens: z.array(z.string()).optional().default([]),
   erc20Amounts: z.array(z.number()).optional().default([]),

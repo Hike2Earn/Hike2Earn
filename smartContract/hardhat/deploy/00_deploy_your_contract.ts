@@ -75,6 +75,35 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     console.log("🎉 All mountains added successfully!");
     console.log("📍 Contract deployed at:", await hike2EarnContract.getAddress());
     
+    // Update frontend configuration
+    console.log("🔄 Updating frontend configuration...");
+    try {
+      const { spawn } = require('child_process');
+      const updateScript = spawn('npx', ['hardhat', 'run', 'scripts/update-frontend-config.ts', '--network', hre.network.name], {
+        cwd: process.cwd(),
+        stdio: 'inherit'
+      });
+      
+      await new Promise((resolve, reject) => {
+        updateScript.on('close', (code) => {
+          if (code === 0) {
+            console.log("✅ Frontend configuration updated successfully!");
+            resolve(code);
+          } else {
+            console.warn("⚠️ Frontend configuration update failed, but deployment was successful");
+            resolve(code); // Don't fail the deployment if this fails
+          }
+        });
+        
+        updateScript.on('error', (err) => {
+          console.warn("⚠️ Could not update frontend configuration:", err.message);
+          resolve(0); // Don't fail the deployment
+        });
+      });
+    } catch (error) {
+      console.warn("⚠️ Could not update frontend configuration:", error);
+    }
+    
   } catch (error: any) {
     console.error("❌ Error setting up campaign:", error);
   }

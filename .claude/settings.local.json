@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx hardhat:*)",
+      "Read(c:\\Users\\jmrod\\OneDrive\\Pictures\\Screenshots/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
