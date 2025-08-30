@@ -1,5 +1,5 @@
 # Hike2Earn Project
-![Logo-Hike2Earn](/Logo-Hike2Earn.png)
+<img src="/Logo-Hike2Earn.png" alt="Logo-Hike2Earn" width="300"/>
 
 ## Problem
 Mountaineering faces a growing sustainability crisis: iconic peaks like Everest and Kilimanjaro are overwhelmed by overcrowding, waste accumulation, and severe environmental degradation, while thousands of lesser-known mountains remain ignored. This concentration of tourism not only damages fragile ecosystems and endangers climbers’ safety, but also highlights the lack of incentives for adventurers to practice responsible and sustainable exploration.
