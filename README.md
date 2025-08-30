@@ -1,5 +1,4 @@
 # Hike2Earn Project
-![Logo-Hike2Earn](/Logo-Hike2Earn.png)
 <img src="/Logo-Hike2Earn.png" alt="Logo-Hike2Earn" width="300"/>
 
 ## Problem
