@@ -1,11 +1,11 @@
 "use client"
 
-import { MapWidget } from "./widgets/map-widget"
-import { StatsWidget } from "./widgets/stats-widget"
-import { ChallengeWidget } from "./widgets/challenge-widget"
-import { AchievementsWidget } from "./widgets/achievements-widget"
-import { LeaderboardWidget } from "./widgets/leaderboard-widget"
-import { WeatherWidget } from "./widgets/weather-widget"
+import { MapWidget } from "./map-widget"
+import { StatsWidget } from "./stats-widget"
+import { ChallengeWidget } from "./challenge-widget"
+import { AchievementsWidget } from "./achievements-widget"
+import { LeaderboardWidget } from "./leaderboard-widget"
+import { WeatherWidget } from "./weather-widget"
 
 export function BentoGrid() {
   return (
