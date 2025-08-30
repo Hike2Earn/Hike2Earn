@@ -38,7 +38,7 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
       </div>
 
       <div className="flex-1 glass-strong border-t lg:border-l lg:border-t-0 border-white/10 overflow-y-auto">
-        <div className="p-6 space-y-6">
+        <div className="p-3 space-y-3">
           {/* Live Metrics - Stats without GlassCard wrappers */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -53,7 +53,7 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               {/* Altitude Goal */}
               <div className="p-3 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
                 <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
             </div>
 
             {/* Altitude */}
-            <div className="p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+            <div className="p-3 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Mountain className="w-5 h-5 text-primary" />
@@ -134,7 +134,7 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
                   +{climbData.elevationGain.toFixed(0)}m
                 </Badge>
               </div>
-              <div className="text-3xl font-bold text-primary mb-2">{climbData.altitude.toFixed(0)}m</div>
+              <div className="text-2xl font-bold text-primary mb-1">{climbData.altitude.toFixed(0)}m</div>
               <div className="w-full bg-muted rounded-full h-3">
                 <div
                   className="bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 relative overflow-hidden"
@@ -147,33 +147,33 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
             </div>
 
             {/* Speed & Distance */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
                 <div className="flex items-center gap-2 mb-2">
                   <Gauge className="w-4 h-4 text-secondary" />
                   <span className="text-sm font-semibold">Speed</span>
                 </div>
-                <div className="text-2xl font-bold text-secondary">{climbData.speed.toFixed(1)}</div>
+                <div className="text-xl font-bold text-secondary">{climbData.speed.toFixed(1)}</div>
                 <div className="text-xs text-muted-foreground">km/h</div>
               </div>
 
-              <div className="p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+              <div className="p-3 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold">Distance</span>
                 </div>
-                <div className="text-2xl font-bold text-primary">{(climbData.distance / 1000).toFixed(1)}</div>
+                <div className="text-xl font-bold text-primary">{(climbData.distance / 1000).toFixed(1)}</div>
                 <div className="text-xs text-muted-foreground">km</div>
               </div>
             </div>
 
             {/* Duration */}
-            <div className="p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+            <div className="p-3 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
               <div className="flex items-center gap-2 mb-2">
                 <Timer className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-semibold">Duration</span>
               </div>
-              <div className="text-2xl font-bold font-mono">{formatDuration(climbData.duration)}</div>
+              <div className="text-xl font-bold font-mono">{formatDuration(climbData.duration)}</div>
             </div>
           </div>
 
@@ -181,7 +181,7 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
           <div className="space-y-3">
             <h3 className="font-semibold">Elevation Profile</h3>
             <div className="p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
-              <div className="h-32">
+              <div className="h-24">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={elevationData}>
                     <defs>
@@ -213,8 +213,8 @@ export function ClimbStats({ climbData }: ClimbStatsProps) {
           {/* Weather Conditions */}
           <div className="space-y-3">
             <h3 className="font-semibold">Weather Conditions</h3>
-            <div className="p-4 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
-              <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="p-3 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+              <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
                   <Cloud className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
                   <div className="text-sm font-semibold">18°C</div>

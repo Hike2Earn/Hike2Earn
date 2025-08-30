@@ -11,7 +11,7 @@ interface ClimbControlsProps {
 
 export function ClimbControls({ isActive, onStartStop, onReset }: ClimbControlsProps) {
   return (
-    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 lg:bottom-8">
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 lg:bottom-6">
       <div className="flex items-center gap-4">
         {/* Reset Button */}
         <Button

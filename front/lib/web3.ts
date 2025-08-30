@@ -61,6 +61,22 @@ export interface Challenge {
   }
 }
 
+export interface Campaign {
+  id: string
+  name: string
+  description: string
+  startDate: number // Unix timestamp
+  endDate: number // Unix timestamp
+  prizePoolETH: number
+  mountainIds: number[]
+  erc20Tokens: string[]
+  erc20Amounts: number[]
+  isActive: boolean
+  prizeDistributed: boolean
+  totalNFTsMinted: number
+  participants: string[]
+}
+
 // Flare Network configuration
 export const FLARE_NETWORK_CONFIG = {
   chainId: 14, // Flare Mainnet
@@ -77,6 +93,26 @@ export const HIKE_TOKEN_CONFIG = {
   address: "0x...", // Contract address will be deployed
   decimals: 18,
   symbol: "HIKE",
+}
+
+// Campaign contract configuration
+export const CAMPAIGN_CONTRACT_CONFIG = {
+  address: "0x...", // Campaign contract address will be deployed
+  abi: [
+    "function createCampaign(string memory _name, uint256 _startDate, uint256 _endDate, uint256[] memory _mountainIds, address[] memory _erc20Tokens) external payable returns (uint256)",
+    "function joinCampaign(uint256 _campaignId) external",
+    "function startClimb(uint256 _campaignId, uint256 _mountainId) external",
+    "function completeCampaign(uint256 _campaignId) external",
+    "function distributePrizes(uint256 _campaignId) external",
+    "function getCampaign(uint256 _campaignId) external view returns (tuple(string name, uint256 startDate, uint256 endDate, uint256 prizePoolETH, uint256[] mountainIds, address[] participants, bool isActive, bool prizeDistributed, uint256 totalNFTsMinted))",
+    "function getCampaignCount() external view returns (uint256)",
+    "function userCampaigns(address user) external view returns (uint256[])",
+    "event CampaignCreated(uint256 indexed campaignId, string name, address indexed creator)",
+    "event CampaignJoined(uint256 indexed campaignId, address indexed participant)",
+    "event ClimbStarted(uint256 indexed campaignId, address indexed climber, uint256 mountainId)",
+    "event CampaignCompleted(uint256 indexed campaignId, address indexed participant)",
+    "event PrizesDistributed(uint256 indexed campaignId, uint256 totalPrizes)"
+  ]
 }
 
 // Connect to Flare Network
@@ -336,6 +372,238 @@ export const mintAchievementNFT = async (achievementData: Partial<NFTBadge>): Pr
     console.error("Failed to mint achievement NFT:", error)
   }
   return "0x0000000000000000000000000000000000000000000000000000000000000000"
+}
+
+//  =================
+// CAMPAIGN FUNCTIONS
+// =================
+
+// Create a new campaign on the smart contract
+export const createCampaignOnChain = async (campaignData: Omit<Campaign, 'id' | 'participants'>): Promise<string | null> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        signer
+      )
+
+      // Convert ETH to Wei
+      const prizePoolWei = ethers.parseEther(campaignData.prizePoolETH.toString())
+
+      const tx = await campaignContract.createCampaign(
+        campaignData.name,
+        campaignData.startDate,
+        campaignData.endDate,
+        campaignData.mountainIds,
+        campaignData.erc20Tokens,
+        { value: prizePoolWei }
+      )
+
+      const receipt = await tx.wait()
+      
+      // Extract campaign ID from events
+      const event = receipt.logs.find((log: any) => log.fragment?.name === 'CampaignCreated')
+      const campaignId = event ? event.args[0].toString() : null
+
+      return campaignId
+    }
+  } catch (error) {
+    console.error("Failed to create campaign on-chain:", error)
+    throw error
+  }
+
+  // Return mock ID for demo purposes
+  return `mock-${Date.now()}`
+}
+
+// Join a campaign
+export const joinCampaignOnChain = async (campaignId: string): Promise<boolean> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        signer
+      )
+
+      const tx = await campaignContract.joinCampaign(campaignId)
+      await tx.wait()
+
+      return true
+    }
+  } catch (error) {
+    console.error("Failed to join campaign:", error)
+    throw error
+  }
+
+  return true // Mock success
+}
+
+// Start a climb for a specific campaign and mountain
+export const startClimbOnChain = async (campaignId: string, mountainId: number): Promise<boolean> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        signer
+      )
+
+      const tx = await campaignContract.startClimb(campaignId, mountainId)
+      await tx.wait()
+
+      return true
+    }
+  } catch (error) {
+    console.error("Failed to start climb:", error)
+    throw error
+  }
+
+  return true // Mock success
+}
+
+// Complete a campaign and trigger NFT minting
+export const completeCampaignOnChain = async (campaignId: string, climbData: ClimbData): Promise<boolean> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+
+      // First verify the climb using State Connector
+      const climbVerified = await verifyClimbWithStateConnector(climbData)
+      
+      if (!climbVerified) {
+        throw new Error("Climb verification failed")
+      }
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        signer
+      )
+
+      // Complete the campaign
+      const tx = await campaignContract.completeCampaign(campaignId)
+      await tx.wait()
+
+      // Mint achievement NFT
+      const nftData: Partial<NFTBadge> = {
+        name: `Campaign ${campaignId} Completion`,
+        description: `Successfully completed campaign ${campaignId} by climbing ${climbData.mountainName}`,
+        image: `/nfts/campaign-${campaignId}.jpg`,
+        rarity: climbData.difficulty === 'extreme' ? 'legendary' as const : 
+               climbData.difficulty === 'hard' ? 'epic' as const : 
+               climbData.difficulty === 'moderate' ? 'rare' as const : 'common' as const,
+        earnedAt: new Date(),
+        mountainName: climbData.mountainName,
+        altitude: climbData.altitude
+      }
+
+      await mintAchievementNFT(nftData)
+
+      return true
+    }
+  } catch (error) {
+    console.error("Failed to complete campaign:", error)
+    throw error
+  }
+
+  return true // Mock success
+}
+
+// Get campaign data from smart contract
+export const getCampaignFromChain = async (campaignId: string): Promise<Campaign | null> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        provider
+      )
+
+      const campaignData = await campaignContract.getCampaign(campaignId)
+
+      return {
+        id: campaignId,
+        name: campaignData.name,
+        description: "", // Would need to store this separately or in IPFS
+        startDate: Number(campaignData.startDate),
+        endDate: Number(campaignData.endDate),
+        prizePoolETH: Number(ethers.formatEther(campaignData.prizePoolETH)),
+        mountainIds: campaignData.mountainIds.map((id: any) => Number(id)),
+        erc20Tokens: [],
+        erc20Amounts: [],
+        isActive: campaignData.isActive,
+        prizeDistributed: campaignData.prizeDistributed,
+        totalNFTsMinted: Number(campaignData.totalNFTsMinted),
+        participants: campaignData.participants
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get campaign from chain:", error)
+  }
+
+  return null
+}
+
+// Get user's campaigns
+export const getUserCampaigns = async (userAddress: string): Promise<string[]> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        provider
+      )
+
+      const campaignIds = await campaignContract.userCampaigns(userAddress)
+      return campaignIds.map((id: any) => id.toString())
+    }
+  } catch (error) {
+    console.error("Failed to get user campaigns:", error)
+  }
+
+  return []
+}
+
+// Distribute prizes for a completed campaign
+export const distributeCampaignPrizes = async (campaignId: string): Promise<boolean> => {
+  try {
+    if (typeof window !== "undefined" && window.ethereum && CAMPAIGN_CONTRACT_CONFIG.address !== "0x...") {
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+
+      const campaignContract = new ethers.Contract(
+        CAMPAIGN_CONTRACT_CONFIG.address, 
+        CAMPAIGN_CONTRACT_CONFIG.abi, 
+        signer
+      )
+
+      const tx = await campaignContract.distributePrizes(campaignId)
+      await tx.wait()
+
+      return true
+    }
+  } catch (error) {
+    console.error("Failed to distribute campaign prizes:", error)
+    throw error
+  }
+
+  return true // Mock success
 }
 
 // Declare global ethereum object for TypeScript

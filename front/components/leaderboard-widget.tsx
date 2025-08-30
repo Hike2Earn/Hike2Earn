@@ -67,7 +67,7 @@ const changeColors = {
 
 export function LeaderboardWidget() {
   return (
-    <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl h-full">
+    <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl h-full min-h-[280px]">
       <div className="p-6 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-lg font-semibold">

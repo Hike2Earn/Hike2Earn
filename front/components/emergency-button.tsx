@@ -19,7 +19,7 @@ export function EmergencyButton() {
   }
 
   return (
-    <div className="absolute bottom-4 right-2 lg:bottom-4 lg:right-4">
+    <div className="absolute bottom-2 right-2 lg:bottom-3 lg:right-4">
       {showConfirm && (
         <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-3 mb-2 w-48 animate-in slide-in-from-top-2 duration-200">
           <div className="text-sm font-semibold text-red-600 mb-2">Confirm Emergency</div>
@@ -42,11 +42,11 @@ export function EmergencyButton() {
         variant="destructive"
         size="lg"
         onClick={handleEmergency}
-        className={`w-16 h-16 rounded-full p-0 bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25 transition-all duration-200 ${
+        className={`w-12 h-12 lg:w-14 lg:h-14 rounded-full p-0 bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25 transition-all duration-200 ${
           showConfirm ? "animate-pulse scale-110" : "hover:scale-110"
         }`}
       >
-        <AlertTriangle className="w-8 h-8" />
+        <AlertTriangle className="w-5 h-5 lg:w-6 lg:h-6" />
       </Button>
     </div>
   )

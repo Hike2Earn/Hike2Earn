@@ -5,7 +5,7 @@ import { useWallet } from "./wallet-provider"
 import { Coins, Zap, Send, ArrowDownToLine } from "lucide-react"
 
 export function WalletBalance() {
-  const { balance, peakBalance } = useWallet()
+  const { balance, hikeBalance } = useWallet()
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -50,7 +50,7 @@ export function WalletBalance() {
         </div>
         <div className="px-6 pb-6 space-y-4">
           <div>
-            <div className="text-3xl font-bold text-primary">{Number.parseFloat(peakBalance).toFixed(2)}</div>
+            <div className="text-3xl font-bold text-primary">{Number.parseFloat(hikeBalance).toFixed(2)}</div>
             <div className="text-sm text-muted-foreground">≈ $156.89 USD</div>
           </div>
 

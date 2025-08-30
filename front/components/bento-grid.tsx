@@ -7,36 +7,81 @@ import { AchievementsWidget } from "./achievements-widget"
 import { LeaderboardWidget } from "./leaderboard-widget"
 import { WeatherWidget } from "./weather-widget"
 
-export function BentoGrid() {
+interface BentoGridProps {
+  sidePanelOpen?: boolean
+  onPeakSelect?: (peakId: number | null) => void
+  selectedPeakId?: number | null
+}
+
+export function BentoGrid({ sidePanelOpen = false, onPeakSelect, selectedPeakId }: BentoGridProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
-      {/* Map Widget - spans 2x2 on desktop */}
-      <div className="lg:col-span-2 lg:row-span-2">
-        <MapWidget />
+    <div className={`
+      grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2
+      lg:grid-rows-[minmax(200px,1fr)_minmax(200px,auto)_auto]
+      transition-all duration-300 ease-in-out
+      ${sidePanelOpen 
+        ? 'lg:grid-cols-3 lg:mr-[28rem]' 
+        : 'lg:grid-cols-4'
+      }
+    `}>
+      {/* Map Widget - Left column, spans 2 rows */}
+      <div className={`
+        lg:row-span-2 lg:col-start-1 lg:row-start-1
+        max-h-[400px] lg:max-h-[500px] overflow-hidden
+        ${sidePanelOpen ? 'lg:col-span-1' : 'lg:col-span-2'}
+      `}>
+        <MapWidget onPeakSelect={onPeakSelect} selectedPeakId={selectedPeakId} />
       </div>
 
-      {/* Today's Stats */}
-      <div className="lg:col-span-1 lg:row-span-1">
-        <StatsWidget />
-      </div>
-
-      {/* Weather Widget */}
-      <div className="lg:col-span-1 lg:row-span-1">
-        <WeatherWidget />
-      </div>
-
-      {/* Active Challenge */}
-      <div className="lg:col-span-2 lg:row-span-1">
-        <ChallengeWidget />
-      </div>
-
-      {/* Recent Achievements */}
-      <div className="lg:col-span-2 lg:row-span-1">
+      {/* NFT Trophy Showcase - Right column, single row */}
+      <div className={`
+        lg:row-span-1 lg:row-start-1
+        ${sidePanelOpen 
+          ? 'lg:col-span-2 lg:col-start-2' 
+          : 'lg:col-span-2 lg:col-start-3'
+        }
+      `}>
         <AchievementsWidget />
       </div>
 
-      {/* Leaderboard */}
-      <div className="lg:col-span-2 lg:row-span-1">
+      {/* Stats Widget - Row 2, position based on panel state */}
+      <div className={`
+        lg:row-span-1 lg:row-start-2
+        ${sidePanelOpen 
+          ? 'lg:col-span-1 lg:col-start-1' 
+          : 'lg:col-span-1 lg:col-start-1'
+        }
+      `}>
+        <StatsWidget />
+      </div>
+
+      {/* Weather Widget - Row 2, position based on panel state */}
+      <div className={`
+        lg:row-span-1 lg:row-start-2
+        ${sidePanelOpen 
+          ? 'lg:col-span-1 lg:col-start-2' 
+          : 'lg:col-span-1 lg:col-start-2'
+        }
+      `}>
+        <WeatherWidget />
+      </div>
+
+      {/* Challenge Widget - Row 2, right columns */}
+      <div className={`
+        lg:row-span-1 lg:row-start-2
+        ${sidePanelOpen 
+          ? 'lg:col-span-1 lg:col-start-3' 
+          : 'lg:col-span-2 lg:col-start-3'
+        }
+      `}>
+        <ChallengeWidget />
+      </div>
+
+      {/* Leaderboard - Bottom full width */}
+      <div className={`
+        lg:row-span-1 lg:row-start-3 lg:col-start-1
+        ${sidePanelOpen ? 'lg:col-span-3' : 'lg:col-span-4'}
+      `}>
         <LeaderboardWidget />
       </div>
     </div>

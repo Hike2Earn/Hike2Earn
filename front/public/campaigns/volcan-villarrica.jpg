@@ -1,0 +1,13 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="volcanoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF4500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B0000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#volcanoGradient)"/>
+  <polygon points="200,50 300,200 100,200" fill="#A0522D"/>
+  <circle cx="200" cy="50" r="15" fill="#FF6347"/>
+  <path d="M185 35 Q200 20 215 35" stroke="#FFA500" stroke-width="3" fill="none"/>
+  <text x="200" y="280" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#FFFFFF">Volcán Villarrica</text>
+</svg>

@@ -94,7 +94,7 @@ export function ClimbTracker() {
   }
 
   return (
-    <div className="relative h-full w-screen overflow-hidden">
+    <div className="relative h-full w-full overflow-hidden">
       {/* Main Map */}
       <ClimbMap climbData={climbData} />
 

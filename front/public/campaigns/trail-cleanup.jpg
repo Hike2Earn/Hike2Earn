@@ -1,0 +1,14 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="trailGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#32CD32;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#228B22;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#trailGradient)"/>
+  <polygon points="0,250 100,200 200,220 300,180 400,200 400,300 0,300" fill="#654321"/>
+  <path d="M50 250 Q200 240 350 230" stroke="#D2691E" stroke-width="8" fill="none"/>
+  <circle cx="150" cy="100" r="30" fill="#228B22"/>
+  <circle cx="250" cy="120" r="25" fill="#006400"/>
+  <text x="200" y="280" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#FFFFFF">Trail Cleanup</text>
+</svg>

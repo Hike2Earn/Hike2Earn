@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Bell, Wallet, Menu, X, Mountain, BarChart3, Users } from "lucide-react"
+import { Bell, Wallet, Menu, X, Mountain, BarChart3, Users, Trophy } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+  { name: "Campaigns", href: "/campaigns", icon: Trophy },
   { name: "Climb", href: "/climb", icon: Mountain },
   { name: "Social", href: "/social", icon: Users },
   { name: "Wallet", href: "/wallet", icon: Wallet },
@@ -27,7 +28,7 @@ export function DashboardHeader() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <img src="/hike2earn-logo.png" alt="Hike2Earn" className="w-full h-full object-contain" />
+              <img src="/icono.jpg" alt="Hike2Earn" className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-bold text-gradient">Hike2Earn</span>
           </Link>
