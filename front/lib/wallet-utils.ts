@@ -151,11 +151,8 @@ export function isolateMetaMaskProvider(): WalletProvider | null {
   // Usar cache si ya se encontró un provider válido
   if (cachedMetaMaskProvider) {
     try {
-      // Validar que el provider cacheado sigue siendo válido
-      if (cachedMetaMaskProvider.request) {
-        console.log("✅ Using cached MetaMask provider");
-        return cachedMetaMaskProvider;
-      }
+      console.log("✅ Using cached MetaMask provider");
+      return cachedMetaMaskProvider;
     } catch (error) {
       console.warn("⚠️ Cached provider invalid, searching again...");
       cachedMetaMaskProvider = null;
