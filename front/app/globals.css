@@ -71,7 +71,8 @@
 
 /* Pulse animation for legendary items */
 @keyframes legendary-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
   }
   50% {
@@ -212,11 +213,19 @@
 
   /* Fixed gradient utilities to use proper color references */
   .mountain-gradient {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--color-primary) 0%,
+      var(--color-secondary) 100%
+    );
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--color-primary) 0%,
+      var(--color-secondary) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -237,9 +246,10 @@
     animation: float 3s ease-in-out infinite;
   }
 
-  /* NFT Trophy Showcase Animations */
+  /* Medals Showcase Animations */
   @keyframes bounce-subtle {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {
@@ -293,7 +303,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -305,7 +315,7 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
   }
-  
+
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
