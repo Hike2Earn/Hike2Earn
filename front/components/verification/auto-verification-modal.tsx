@@ -145,16 +145,11 @@ export function AutoVerificationModal({
         }, 3000);
       }
     } catch (error: any) {
-      // Check if it's a timeout, connection issue, or user rejection
-      const isTimeoutError =
-        error.message?.includes("timeout") ||
-        error.message?.includes("Unexpected error") ||
-        error.message?.includes("selectExtension") ||
-        error.message?.includes("evmAsk.js");
-
+      // Check if it's a user rejection or other error
       const isUserRejected =
         error.message?.includes("user rejected") ||
         error.message?.includes("User rejected") ||
+        error.message?.includes("Transacción cancelada") ||
         error.code === 4001;
 
       if (isUserRejected) {
@@ -168,17 +163,6 @@ export function AutoVerificationModal({
           onClose();
           resetModal();
         }, 2000);
-      } else if (isTimeoutError) {
-        // Treat timeout/connection issues as success since transaction was sent
-        setResult({
-          success: true,
-          tokenId: `verified_${Date.now()}`,
-        });
-        setShowSuccess(true);
-        setTimeout(() => {
-          onClose();
-          resetModal();
-        }, 3000);
       } else {
         // For other errors, show a simplified message
         let friendlyError = "Error en la verificación";
@@ -277,8 +261,8 @@ export function AutoVerificationModal({
           </DialogTitle>
           <DialogDescription>
             {type === "campaign"
-              ? "Sube fotos y descripción para verificar tu participación en la campaña y recibir tu NFT de recompensa."
-              : "Sube fotos de la cumbre alcanzada para verificar tu logro y recibir tu NFT conmemorativo."}
+              ? "Upload photos and description to verify your campaign participation and receive your reward NFT."
+              : "Upload summit photos to verify your achievement and receive your commemorative NFT."}
           </DialogDescription>
         </DialogHeader>
 
@@ -297,8 +281,8 @@ export function AutoVerificationModal({
             </div>
             <p className="text-sm text-muted-foreground">
               {type === "campaign"
-                ? "Sube fotos que demuestren tu participación en el evento"
-                : "Sube fotos que demuestren que alcanzaste la cumbre"}
+                ? "Upload photos showing your participation in the event"
+                : "Upload photos showing you reached the summit"}
             </p>
           </div>
 

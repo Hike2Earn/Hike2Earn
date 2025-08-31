@@ -1,45 +1,45 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { TrendingUp, Mountain, Zap } from "lucide-react"
+import { useEffect, useState } from "react";
+import { TrendingUp, Mountain, Zap } from "lucide-react";
 
 export function StatsWidget() {
   const [animatedValues, setAnimatedValues] = useState({
     altitude: 0,
     tokens: 0,
     climbs: 0,
-  })
+  });
 
   const targetValues = {
     altitude: 2847,
     tokens: 156,
     climbs: 12,
-  }
+  };
 
   useEffect(() => {
-    const duration = 2000 // 2 seconds
-    const steps = 60
-    const stepDuration = duration / steps
+    const duration = 2000; // 2 seconds
+    const steps = 60;
+    const stepDuration = duration / steps;
 
-    let currentStep = 0
+    let currentStep = 0;
     const interval = setInterval(() => {
-      currentStep++
-      const progress = currentStep / steps
+      currentStep++;
+      const progress = currentStep / steps;
 
       setAnimatedValues({
         altitude: Math.floor(targetValues.altitude * progress),
         tokens: Math.floor(targetValues.tokens * progress),
         climbs: Math.floor(targetValues.climbs * progress),
-      })
+      });
 
       if (currentStep >= steps) {
-        clearInterval(interval)
-        setAnimatedValues(targetValues)
+        clearInterval(interval);
+        setAnimatedValues(targetValues);
       }
-    }, stepDuration)
+    }, stepDuration);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl h-full">
@@ -56,9 +56,13 @@ export function StatsWidget() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Mountain className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Altitude Gained</span>
+              <span className="text-sm text-muted-foreground">
+                Altitude Gained
+              </span>
             </div>
-            <span className="text-sm font-semibold">{animatedValues.altitude}m</span>
+            <span className="text-sm font-semibold">
+              {animatedValues.altitude}m
+            </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div
@@ -77,7 +81,9 @@ export function StatsWidget() {
               <Zap className="w-4 h-4 text-secondary" />
               <span className="text-sm text-muted-foreground">HIKE Earned</span>
             </div>
-            <span className="text-sm font-semibold text-secondary">{animatedValues.tokens}</span>
+            <span className="text-sm font-semibold text-secondary">
+              {animatedValues.tokens}
+            </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div
@@ -92,8 +98,12 @@ export function StatsWidget() {
         {/* Climbs Completed */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Climbs Completed</span>
-            <span className="text-sm font-semibold">{animatedValues.climbs}/15</span>
+            <span className="text-sm text-muted-foreground">
+              Climbs Completed
+            </span>
+            <span className="text-sm font-semibold">
+              {animatedValues.climbs}/15
+            </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div
@@ -121,5 +131,5 @@ export function StatsWidget() {
         </div>
       </div>
     </div>
-  )
+  );
 }

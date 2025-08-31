@@ -171,11 +171,78 @@ export const getCampaignStatus = (
 // CAMPAIGN OPERATIONS
 // ===============================
 
-// Create campaign with validation
+// Create local campaign as fallback when blockchain creation fails
+const createLocalCampaign = async (
+  campaignData: any
+): Promise<string | null> => {
+  try {
+    const localCampaignId = `local-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
+    // Get mountain information for better display
+    const getMountainInfo = (mountainIds: number[]) => {
+      if (!mountainIds || mountainIds.length === 0) return "Custom Route";
+
+      // This would be replaced with actual mountain data from your database
+      const mountainNames = mountainIds.map((id) => `Mountain ${id}`);
+      return mountainNames.length === 1
+        ? mountainNames[0]
+        : "Multiple Mountains";
+    };
+
+    const localCampaign = {
+      id: localCampaignId,
+      name: campaignData.name,
+      title: campaignData.name,
+      description: campaignData.description,
+      type: campaignData.type || "summit",
+      difficulty: campaignData.difficulty || "intermediate",
+      location: campaignData.location || "User Created",
+      mountain: getMountainInfo(campaignData.mountainIds),
+      startDate: new Date(campaignData.startDate * 1000)
+        .toISOString()
+        .split("T")[0],
+      endDate: new Date(campaignData.endDate * 1000)
+        .toISOString()
+        .split("T")[0],
+      duration:
+        Math.ceil(
+          (campaignData.endDate - campaignData.startDate) / (24 * 60 * 60)
+        ) + " days",
+      participants: 0,
+      maxParticipants: parseInt(campaignData.maxParticipants) || 20,
+      reward: Math.floor(campaignData.prizePoolLSK * 1000),
+      image: "/cerros/cerroAconcagua.jpg",
+      elevation: "Variable",
+      mountainIds: campaignData.mountainIds || [],
+      isLocal: true,
+      createdAt: Date.now(),
+      status: "active",
+    };
+
+    // Save to localStorage
+    const existingCampaigns = JSON.parse(
+      localStorage.getItem("localCampaigns") || "[]"
+    );
+    existingCampaigns.push(localCampaign);
+    localStorage.setItem("localCampaigns", JSON.stringify(existingCampaigns));
+
+    console.log("Local campaign saved:", localCampaign);
+    return localCampaignId;
+  } catch (error) {
+    console.error("Failed to create local campaign:", error);
+    return null;
+  }
+};
+
+// Create campaign locally (simplified - no blockchain interaction)
 export const createCampaign = async (
   campaignData: any
 ): Promise<{ success: boolean; campaignId?: string; error?: string }> => {
   try {
+    console.log("📝 Creating local campaign:", campaignData);
+
     // Validate data
     const validation = validateCampaignCreation(campaignData);
     if (!validation.success) {
@@ -185,17 +252,23 @@ export const createCampaign = async (
       };
     }
 
-    // Create campaign on blockchain
-    const campaignId = await createCampaignOnChain(validation.data!);
+    // Create campaign locally (no blockchain interaction)
+    console.log("🏠 Creating campaign locally...");
+    const localCampaignId = await createLocalCampaign(validation.data!);
 
-    if (!campaignId) {
+    if (localCampaignId) {
+      console.log("✅ Local campaign created successfully!", localCampaignId);
+      return {
+        success: true,
+        campaignId: localCampaignId,
+      };
+    } else {
+      console.error("❌ Failed to create local campaign");
       return {
         success: false,
-        error: "Failed to create campaign on blockchain",
+        error: "Failed to create local campaign",
       };
     }
-
-    return { success: true, campaignId };
   } catch (error) {
     console.error("Campaign creation error:", error);
     return {

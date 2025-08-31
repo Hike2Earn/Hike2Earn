@@ -157,6 +157,31 @@ const getEthereumProvider = (): WalletProvider | null => {
   return bestProvider;
 };
 
+// Enhanced provider selection with MetaMask priority
+const getSafeProvider = async (): Promise<WalletProvider | null> => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    // First try to isolate MetaMask specifically
+    const { isolateMetaMaskProvider } = await import("./wallet-utils");
+    const metaMaskProvider = isolateMetaMaskProvider();
+
+    if (metaMaskProvider) {
+      console.log("✅ Found MetaMask provider");
+      return metaMaskProvider;
+    }
+
+    // Fallback to best provider
+    console.log("🔄 MetaMask not isolated, using best provider");
+    return getBestProvider();
+  } catch (error) {
+    console.warn("⚠️ Provider isolation failed:", error);
+    return getBestProvider();
+  }
+};
+
 // Connect to Lisk Network with advanced error handling
 export const connectWallet = async (): Promise<string | null> => {
   console.log("🔌 web3.connectWallet() called");
@@ -166,10 +191,11 @@ export const connectWallet = async (): Promise<string | null> => {
     return null;
   }
 
-  const ethereum = getEthereumProvider();
+  // Use safe provider selection
+  const ethereum = await getSafeProvider();
 
   if (!ethereum) {
-    console.warn("❌ No wallet extension detected");
+    console.warn("❌ No wallet provider found");
     const diagnostic = diagnoseWalletEnvironment();
 
     if (diagnostic.recommendations.length > 0) {
@@ -179,7 +205,7 @@ export const connectWallet = async (): Promise<string | null> => {
     return null;
   }
 
-  console.log("✅ Ethereum provider ready for connection");
+  console.log("✅ Safe provider ready for connection");
 
   try {
     console.log(
@@ -224,6 +250,22 @@ export const connectWallet = async (): Promise<string | null> => {
   } catch (error: any) {
     console.error("❌ Wallet connection failed:", error);
 
+    // Handle specific wallet conflict errors
+    if (
+      error.message?.includes("evmAsk.js") ||
+      error.message?.includes("Unexpected error") ||
+      error.message?.includes("selectExtension")
+    ) {
+      const walletError = new Error(
+        "Wallet conflict detected. Please:\n" +
+          "1. Close other wallet extensions (like Phantom)\n" +
+          "2. Refresh the page\n" +
+          "3. Make sure only MetaMask is enabled\n" +
+          "4. Try again"
+      );
+      throw walletError;
+    }
+
     // Get user-friendly error message
     const errorInfo = getErrorMessage(error);
     console.error("📝 Error details:", errorInfo);
@@ -237,13 +279,6 @@ export const connectWallet = async (): Promise<string | null> => {
       );
     } else if (error.message?.includes("timeout")) {
       throw new Error("Wallet connection timed out. Please try again.");
-    } else if (
-      error.message?.includes("selectExtension") ||
-      error.message?.includes("Unexpected error")
-    ) {
-      // Import the specific handler for this error
-      const { handleMultipleWalletError } = await import("./wallet-utils");
-      throw new Error(handleMultipleWalletError(error));
     } else {
       throw new Error(
         `Failed to connect wallet: ${
@@ -286,7 +321,10 @@ export const getCurrentAccount = async (): Promise<string | null> => {
   if (!isWalletAvailable()) return null;
 
   try {
-    const accounts = await window.ethereum!.request({
+    const ethereum = await getSafeProvider();
+    if (!ethereum) return null;
+
+    const accounts = await ethereum.request({
       method: "eth_accounts",
     });
     return accounts.length > 0 ? accounts[0] : null;
@@ -303,7 +341,6 @@ export const getHikeTokenBalance = async (address: string): Promise<number> => {
   try {
     if (
       typeof window !== "undefined" &&
-      window.ethereum &&
       HIKE_TOKEN_CONFIG.address &&
       HIKE_TOKEN_CONFIG.address !== ""
     ) {
@@ -311,23 +348,29 @@ export const getHikeTokenBalance = async (address: string): Promise<number> => {
         "🪙 Attempting to fetch from token contract:",
         HIKE_TOKEN_CONFIG.address
       );
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const tokenABI = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function decimals() view returns (uint8)",
-      ];
 
-      const tokenContract = new ethers.Contract(
-        HIKE_TOKEN_CONFIG.address,
-        tokenABI,
-        provider
-      );
+      const ethereum = await getSafeProvider();
+      if (!ethereum) {
+        console.warn("⚠️ No safe provider available, using mock balance");
+      } else {
+        const provider = new ethers.BrowserProvider(ethereum);
+        const tokenABI = [
+          "function balanceOf(address owner) view returns (uint256)",
+          "function decimals() view returns (uint8)",
+        ];
 
-      const balance = await tokenContract.balanceOf(address);
-      const realBalance =
-        Number(balance) / Math.pow(10, HIKE_TOKEN_CONFIG.decimals);
-      console.log("🪙 Real HIKE balance:", realBalance);
-      return realBalance;
+        const tokenContract = new ethers.Contract(
+          HIKE_TOKEN_CONFIG.address,
+          tokenABI,
+          provider
+        );
+
+        const balance = await tokenContract.balanceOf(address);
+        const realBalance =
+          Number(balance) / Math.pow(10, HIKE_TOKEN_CONFIG.decimals);
+        console.log("🪙 Real HIKE balance:", realBalance);
+        return realBalance;
+      }
     }
   } catch (error) {
     console.warn(
@@ -454,8 +497,14 @@ export const calculateHikeRewardWithFTSO = async (
 // Smart contract interactions
 export const stakeHikeTokens = async (amount: number): Promise<boolean> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+    if (typeof window !== "undefined") {
+      const ethereum = await getSafeProvider();
+      if (!ethereum) {
+        console.warn("⚠️ No safe provider available for staking");
+        return false;
+      }
+
+      const provider = new ethers.BrowserProvider(ethereum);
       const signer = await provider.getSigner();
 
       const stakingABI = [
@@ -504,8 +553,14 @@ export const mintAchievementNFT = async (
   achievementData: Partial<NFTBadge>
 ): Promise<string> => {
   try {
-    if (typeof window !== "undefined" && window.ethereum) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+    if (typeof window !== "undefined") {
+      const ethereum = await getSafeProvider();
+      if (!ethereum) {
+        console.warn("⚠️ No safe provider available for NFT minting");
+        return "0x0000000000000000000000000000000000000000000000000000000000000000";
+      }
+
+      const provider = new ethers.BrowserProvider(ethereum);
       const signer = await provider.getSigner();
 
       const nftABI = [
@@ -535,29 +590,40 @@ export const createCampaignOnChain = async (
   campaignData: Omit<Campaign, "id" | "participants">
 ): Promise<string | null> => {
   try {
-    if (
-      typeof window !== "undefined" &&
-      window.ethereum &&
-      HIKE2EARN_CONTRACT_CONFIG.address
-    ) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+    if (typeof window !== "undefined" && HIKE2EARN_CONTRACT_CONFIG.address) {
+      // Use safe provider selection to avoid wallet conflicts
+      const ethereum = await getSafeProvider();
+      if (!ethereum) {
+        throw new Error(
+          "No wallet provider found. Please ensure MetaMask is installed and unlocked."
+        );
+      }
+
+      console.log("🔑 Creating provider and signer...");
+      const provider = new ethers.BrowserProvider(ethereum);
       const signer = await provider.getSigner();
 
+      console.log("📝 Creating contract instance...");
       const hike2EarnContract = new ethers.Contract(
         HIKE2EARN_CONTRACT_CONFIG.address,
         HIKE2EARN_CONTRACT_CONFIG.abi,
         signer
       );
 
+      console.log("⏳ Creating campaign on blockchain...");
+
       // Create campaign with basic info first
+      // Try to create campaign directly - if it fails due to permissions, fallback will catch it
       const tx = await hike2EarnContract.createCampaign(
         campaignData.name,
         campaignData.startDate,
         campaignData.endDate
       );
 
+      console.log("⏳ Waiting for transaction confirmation...");
       const receipt = await tx.wait();
 
+      console.log("✅ Campaign created successfully!");
       // Extract campaign ID from events
       const event = receipt.logs.find(
         (log: any) => log.fragment?.name === "CampaignCreated"
@@ -568,23 +634,30 @@ export const createCampaignOnChain = async (
         throw new Error("Failed to get campaign ID from transaction");
       }
 
+      console.log(`📋 Campaign ID: ${campaignId}`);
+
       // Add mountains to the campaign
-      for (const mountainId of campaignData.mountainIds) {
-        // Get mountain data (this would typically come from a database)
-        const mountainData = getMountainData(mountainId);
-        if (mountainData) {
-          const addMountainTx = await hike2EarnContract.addMountain(
-            campaignId,
-            mountainData.name,
-            mountainData.altitude,
-            mountainData.location
-          );
-          await addMountainTx.wait();
+      if (campaignData.mountainIds && campaignData.mountainIds.length > 0) {
+        console.log("🏔️ Adding mountains to campaign...");
+        for (const mountainId of campaignData.mountainIds) {
+          // Get mountain data (this would typically come from a database)
+          const mountainData = getMountainData(mountainId);
+          if (mountainData) {
+            console.log(`Adding mountain: ${mountainData.name}`);
+            const addMountainTx = await hike2EarnContract.addMountain(
+              campaignId,
+              mountainData.name,
+              mountainData.altitude,
+              mountainData.location
+            );
+            await addMountainTx.wait();
+          }
         }
       }
 
       // If there's an LSK prize pool, sponsor the campaign
       if (campaignData.prizePoolLSK > 0) {
+        console.log("💰 Sponsoring campaign with LSK...");
         const sponsorTx = await hike2EarnContract.sponsorCampaign(
           campaignId,
           "Campaign Creator", // Default sponsor name
@@ -592,43 +665,74 @@ export const createCampaignOnChain = async (
           { value: ethers.parseEther(campaignData.prizePoolLSK.toString()) }
         );
         await sponsorTx.wait();
+        console.log("✅ Campaign sponsored successfully!");
       }
 
       // Handle ERC20 token prizes if any
-      for (let i = 0; i < campaignData.erc20Tokens.length; i++) {
-        const tokenAddress = campaignData.erc20Tokens[i];
-        const tokenAmount = campaignData.erc20Amounts[i];
+      if (campaignData.erc20Tokens && campaignData.erc20Tokens.length > 0) {
+        console.log("🪙 Handling ERC20 token sponsorships...");
+        for (let i = 0; i < campaignData.erc20Tokens.length; i++) {
+          const tokenAddress = campaignData.erc20Tokens[i];
+          const tokenAmount = campaignData.erc20Amounts[i];
 
-        if (tokenAmount > 0) {
-          // First approve the contract to spend tokens
-          const tokenContract = new ethers.Contract(
-            tokenAddress,
-            [
-              "function approve(address spender, uint256 amount) external returns (bool)",
-            ],
-            signer
-          );
+          if (tokenAmount > 0) {
+            console.log(
+              `Approving ${tokenAmount} tokens for ${tokenAddress}...`
+            );
+            // First approve the contract to spend tokens
+            const tokenContract = new ethers.Contract(
+              tokenAddress,
+              [
+                "function approve(address spender, uint256 amount) external returns (bool)",
+              ],
+              signer
+            );
 
-          const approveTx = await tokenContract.approve(
-            HIKE2EARN_CONTRACT_CONFIG.address,
-            ethers.parseUnits(tokenAmount.toString(), 18) // Assuming 18 decimals
-          );
-          await approveTx.wait();
+            const approveTx = await tokenContract.approve(
+              HIKE2EARN_CONTRACT_CONFIG.address,
+              ethers.parseUnits(tokenAmount.toString(), 18) // Assuming 18 decimals
+            );
+            await approveTx.wait();
 
-          // Sponsor with ERC20 token
-          const sponsorERC20Tx = await hike2EarnContract.sponsorCampaignERC20(
-            campaignId,
-            tokenAddress,
-            ethers.parseUnits(tokenAmount.toString(), 18)
-          );
-          await sponsorERC20Tx.wait();
+            console.log("Sponsoring with ERC20 tokens...");
+            // Sponsor with ERC20 token
+            const sponsorERC20Tx = await hike2EarnContract.sponsorCampaignERC20(
+              campaignId,
+              tokenAddress,
+              ethers.parseUnits(tokenAmount.toString(), 18)
+            );
+            await sponsorERC20Tx.wait();
+          }
         }
       }
 
+      console.log("🎉 Campaign creation completed successfully!");
       return campaignId;
     }
   } catch (error) {
-    console.error("Failed to create campaign on-chain:", error);
+    console.error("❌ Failed to create campaign on-chain:", error);
+
+    // Handle specific wallet conflict errors
+    if (error instanceof Error) {
+      if (
+        error.message.includes("evmAsk.js") ||
+        error.message.includes("Unexpected error") ||
+        error.message.includes("selectExtension")
+      ) {
+        const walletError = new Error(
+          "Wallet conflict detected. Please:\n" +
+            "1. Close other wallet extensions (like Phantom)\n" +
+            "2. Refresh the page\n" +
+            "3. Make sure only MetaMask is enabled\n" +
+            "4. Try again"
+        );
+        throw walletError;
+      } else if (error.message.includes("user rejected")) {
+        const userError = new Error("Transaction cancelled by user");
+        throw userError;
+      }
+    }
+
     throw error;
   }
 

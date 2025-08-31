@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
-import { Button } from "@/components/ui/button"
-import { MapPin, Navigation } from "lucide-react"
-import { PeakDetailsSidePanel } from "./peak-details-side-panel"
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+import { Button } from "@/components/ui/button";
+import { MapPin, Navigation } from "lucide-react";
+import { PeakDetailsSidePanel } from "./peak-details-side-panel";
 
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[300px] lg:min-h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">
+    <div className="w-full h-full min-h-[250px] lg:min-h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
       <div className="text-gray-500">Loading map...</div>
     </div>
   ),
-})
+});
 
 const mendozaPeaks = [
   {
@@ -31,14 +31,20 @@ const mendozaPeaks = [
     bestSeason: "December - February",
     permits: "Aconcagua Provincial Park permit required",
     basecamp: "Plaza de Mulas (4,300m)",
-    description: "The highest peak in both the Western and Southern Hemispheres, Aconcagua stands as the ultimate challenge for mountaineers in South America.",
-    history: "Known as 'Stone Sentinel' by the Quechua people, Aconcagua was first conquered by Swiss guide Matthias Zurbriggen in 1897. The mountain has since become a proving ground for climbers preparing for the world's highest peaks.",
+    description:
+      "The highest peak in both the Western and Southern Hemispheres, Aconcagua stands as the ultimate challenge for mountaineers in South America.",
+    history:
+      "Known as 'Stone Sentinel' by the Quechua people, Aconcagua was first conquered by Swiss guide Matthias Zurbriggen in 1897. The mountain has since become a proving ground for climbers preparing for the world's highest peaks.",
     statistics: {
       successRate: "40%",
       averageDays: 16,
-      recordTime: "5h 45m (speed ascent)"
+      recordTime: "5h 45m (speed ascent)",
     },
-    images: ["/peaks/aconcagua-1.jpg", "/peaks/aconcagua-2.jpg", "/peaks/aconcagua-3.jpg"]
+    images: [
+      "/peaks/aconcagua-1.jpg",
+      "/peaks/aconcagua-2.jpg",
+      "/peaks/aconcagua-3.jpg",
+    ],
   },
   {
     id: 2,
@@ -50,19 +56,24 @@ const mendozaPeaks = [
     technicalGrade: "AD (Assez Difficile)",
     reward: "2200 HIKE",
     coordinates: [-31.9714, -70.1175] as [number, number],
-    firstAscent: { year: 1934, climbers: "Polish expedition led by Adam Karpiński" },
+    firstAscent: {
+      year: 1934,
+      climbers: "Polish expedition led by Adam Karpiński",
+    },
     climbingDuration: "12-16 days",
     bestSeason: "December - March",
     permits: "San Juan Province climbing permit",
     basecamp: "Base Mercedario (4,200m)",
-    description: "Argentina's second-highest peak, offering a more technical and remote climbing experience than Aconcagua.",
-    history: "First climbed by a Polish expedition in 1934, Mercedario remained relatively unknown until recent decades. Its remote location and technical challenges make it a coveted prize for experienced mountaineers.",
+    description:
+      "Argentina's second-highest peak, offering a more technical and remote climbing experience than Aconcagua.",
+    history:
+      "First climbed by a Polish expedition in 1934, Mercedario remained relatively unknown until recent decades. Its remote location and technical challenges make it a coveted prize for experienced mountaineers.",
     statistics: {
       successRate: "25%",
       averageDays: 14,
-      recordTime: "7h 12m (speed ascent)"
+      recordTime: "7h 12m (speed ascent)",
     },
-    images: ["/peaks/mercedario-1.jpg", "/peaks/mercedario-2.jpg"]
+    images: ["/peaks/mercedario-1.jpg", "/peaks/mercedario-2.jpg"],
   },
   {
     id: 3,
@@ -79,14 +90,16 @@ const mendozaPeaks = [
     bestSeason: "November - March",
     permits: "Chilean-Argentine border crossing permit",
     basecamp: "Tupungato Base Camp (4,000m)",
-    description: "A massive stratovolcano straddling the Chilean-Argentine border, known for its glaciated summit and technical ice climbing.",
-    history: "One of the first major peaks climbed in the Andes, Tupungato was conquered in the same year as Aconcagua. The volcano's last eruption occurred around 1986, leaving behind a challenging glaciated peak.",
+    description:
+      "A massive stratovolcano straddling the Chilean-Argentine border, known for its glaciated summit and technical ice climbing.",
+    history:
+      "One of the first major peaks climbed in the Andes, Tupungato was conquered in the same year as Aconcagua. The volcano's last eruption occurred around 1986, leaving behind a challenging glaciated peak.",
     statistics: {
       successRate: "35%",
       averageDays: 12,
-      recordTime: "6h 30m (speed ascent)"
+      recordTime: "6h 30m (speed ascent)",
     },
-    images: ["/peaks/tupungato-1.jpg", "/peaks/tupungato-2.jpg"]
+    images: ["/peaks/tupungato-1.jpg", "/peaks/tupungato-2.jpg"],
   },
   {
     id: 4,
@@ -103,14 +116,16 @@ const mendozaPeaks = [
     bestSeason: "December - February",
     permits: "Mendoza Province permit",
     basecamp: "Plata Base Camp (3,800m)",
-    description: "A beautiful peak offering excellent training for higher summits, with spectacular views of the Aconcagua massif.",
-    history: "Named for its silvery appearance when covered in snow, Cerro Plata was one of the earliest major peaks climbed in the region. It serves as an excellent acclimatization peak for Aconcagua attempts.",
+    description:
+      "A beautiful peak offering excellent training for higher summits, with spectacular views of the Aconcagua massif.",
+    history:
+      "Named for its silvery appearance when covered in snow, Cerro Plata was one of the earliest major peaks climbed in the region. It serves as an excellent acclimatization peak for Aconcagua attempts.",
     statistics: {
       successRate: "60%",
       averageDays: 10,
-      recordTime: "4h 45m (speed ascent)"
+      recordTime: "4h 45m (speed ascent)",
     },
-    images: ["/peaks/plata-1.jpg", "/peaks/plata-2.jpg"]
+    images: ["/peaks/plata-1.jpg", "/peaks/plata-2.jpg"],
   },
   {
     id: 5,
@@ -127,14 +142,16 @@ const mendozaPeaks = [
     bestSeason: "November - April",
     permits: "Chilean National Parks permit",
     basecamp: "Refugio Federación (3,200m)",
-    description: "Visible from Santiago, this peak offers one of the best views in the central Andes and serves as excellent training for higher peaks.",
-    history: "El Plomo holds archaeological significance with Inca mummy discoveries near its summit. The mountain has been climbed for centuries and remains one of the most popular training peaks in the region.",
+    description:
+      "Visible from Santiago, this peak offers one of the best views in the central Andes and serves as excellent training for higher peaks.",
+    history:
+      "El Plomo holds archaeological significance with Inca mummy discoveries near its summit. The mountain has been climbed for centuries and remains one of the most popular training peaks in the region.",
     statistics: {
       successRate: "85%",
       averageDays: 3,
-      recordTime: "3h 20m (speed ascent)"
+      recordTime: "3h 20m (speed ascent)",
     },
-    images: ["/peaks/plomo-1.jpg", "/peaks/plomo-2.jpg"]
+    images: ["/peaks/plomo-1.jpg", "/peaks/plomo-2.jpg"],
   },
   {
     id: 6,
@@ -151,43 +168,53 @@ const mendozaPeaks = [
     bestSeason: "December - March",
     permits: "Vallecitos Provincial Park permit",
     basecamp: "Vallecitos Ski Resort (3,000m)",
-    description: "A popular training peak for Aconcagua, offering technical climbing experience with excellent access from Mendoza.",
-    history: "Located near Argentina's highest ski resort, Vallecitos has become a favorite training ground for mountaineers. The peak offers various routes of different difficulties.",
+    description:
+      "A popular training peak for Aconcagua, offering technical climbing experience with excellent access from Mendoza.",
+    history:
+      "Located near Argentina's highest ski resort, Vallecitos has become a favorite training ground for mountaineers. The peak offers various routes of different difficulties.",
     statistics: {
       successRate: "70%",
       averageDays: 4,
-      recordTime: "4h 15m (speed ascent)"
+      recordTime: "4h 15m (speed ascent)",
     },
-    images: ["/peaks/vallecitos-1.jpg", "/peaks/vallecitos-2.jpg"]
-  }
-]
+    images: ["/peaks/vallecitos-1.jpg", "/peaks/vallecitos-2.jpg"],
+  },
+];
 
 interface MapWidgetProps {
-  onPeakSelect?: (peakId: number | null) => void
-  selectedPeakId?: number | null
+  onPeakSelect?: (peakId: number | null) => void;
+  selectedPeakId?: number | null;
 }
 
-export function MapWidget({ onPeakSelect, selectedPeakId }: MapWidgetProps = {}) {
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
-  
-  const selectedPeak = mendozaPeaks.find(peak => peak.id === selectedPeakId)
+export function MapWidget({
+  onPeakSelect,
+  selectedPeakId,
+}: MapWidgetProps = {}) {
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null
+  );
+
+  const selectedPeak = mendozaPeaks.find((peak) => peak.id === selectedPeakId);
 
   const handlePeakSelect = (id: number) => {
-    onPeakSelect?.(id)
-  }
+    onPeakSelect?.(id);
+  };
 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude])
+          setUserLocation([
+            position.coords.latitude,
+            position.coords.longitude,
+          ]);
         },
         (error) => {
-          console.log("Geolocation error:", error)
-        },
-      )
+          console.log("Geolocation error:", error);
+        }
+      );
     }
-  }, [])
+  }, []);
 
   return (
     <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl h-full max-h-full flex flex-col overflow-hidden">
@@ -206,10 +233,13 @@ export function MapWidget({ onPeakSelect, selectedPeakId }: MapWidgetProps = {})
 
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="relative h-full rounded-b-xl overflow-hidden">
-          <LeafletMap peaks={mendozaPeaks} userLocation={userLocation} onPeakSelect={handlePeakSelect} />
+          <LeafletMap
+            peaks={mendozaPeaks}
+            userLocation={userLocation}
+            onPeakSelect={handlePeakSelect}
+          />
         </div>
       </div>
-      
     </div>
-  )
+  );
 }

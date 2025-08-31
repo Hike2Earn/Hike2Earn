@@ -597,6 +597,7 @@ export function useHike2Earn() {
 
       if (count === 0) {
         console.log("ℹ️ No campaigns found in contract (count = 0)");
+        // Return empty array but don't set error - this is normal for new contracts
         return [];
       }
 
@@ -605,37 +606,47 @@ export function useHike2Earn() {
 
       console.log(`🔄 Fetching ${count} campaigns...`);
 
-      // Fetch campaigns in parallel for better performance
-      const campaignPromises = Array.from({ length: count }, (_, i) => {
-        console.log(`🔄 Creating promise for campaign ${i}`);
-        return getCampaignInfo(i).catch((error) => {
+      // Fetch campaigns sequentially to avoid overwhelming the network
+      for (let i = 0; i < count; i++) {
+        try {
+          console.log(`🔄 Fetching campaign ${i}...`);
+          const campaign = await getCampaignInfo(i);
+          if (campaign) {
+            console.log(`✅ Campaign ${i} loaded:`, campaign);
+            campaigns.push(campaign);
+          } else {
+            console.warn(`⚠️ Campaign ${i} returned null`);
+            errors.push(`Campaign ${i}: No data returned`);
+          }
+        } catch (error: any) {
           console.error(`❌ Failed to fetch campaign ${i}:`, error);
-          errors.push(`Failed to fetch campaign ${i}: ${error.message}`);
-          return null;
-        });
-      });
 
-      console.log(
-        `🔄 Waiting for ${campaignPromises.length} campaign promises...`
-      );
-      const campaignResults = await Promise.all(campaignPromises);
-      console.log("📊 Campaign results:", campaignResults);
-
-      // Filter out null results and add valid campaigns
-      campaignResults.forEach((campaign, index) => {
-        if (campaign) {
-          console.log(`✅ Adding campaign ${index}:`, campaign);
-          campaigns.push(campaign);
-        } else {
-          console.warn(`⚠️ Campaign ${index} could not be loaded`);
+          // Handle specific wallet conflict errors
+          if (
+            error.message?.includes("evmAsk.js") ||
+            error.message?.includes("Unexpected error") ||
+            error.message?.includes("selectExtension")
+          ) {
+            const conflictError = `Campaign ${i}: Wallet conflict detected - try refreshing page`;
+            console.warn(`⚠️ ${conflictError}`);
+            errors.push(conflictError);
+          } else {
+            const errorMsg = `Failed to fetch campaign ${i}: ${error.message}`;
+            console.error(`❌ ${errorMsg}`);
+            errors.push(errorMsg);
+          }
         }
-      });
+      }
 
       if (errors.length > 0) {
         console.warn("⚠️ Some campaigns failed to load:", errors);
-        setError(
-          `Loaded ${campaigns.length}/${count} campaigns. Some campaigns may be corrupted.`
-        );
+        if (campaigns.length === 0) {
+          setError(`No campaigns could be loaded. Check contract state.`);
+        } else {
+          setError(
+            `Loaded ${campaigns.length}/${count} campaigns. Some failed to load.`
+          );
+        }
       }
 
       console.log(
@@ -655,6 +666,238 @@ export function useHike2Earn() {
       setIsLoading(false);
     }
   }, [contract, contractHealthy, getCampaignCount, getCampaignInfo]);
+
+  // Enhanced diagnostic function to help debug contract issues
+  const diagnoseContractState = useCallback(async () => {
+    console.log("🔬 Starting contract diagnostics...");
+
+    const diagnostics = {
+      contractAvailable: !!contract,
+      contractHealthy,
+      address: address,
+      networkInfo: null as any,
+      contractCode: null,
+      campaignCount: 0,
+      contractOwner: null,
+      campaignDetails: [] as any[],
+      errors: [] as string[],
+    };
+
+    try {
+      if (contract && ethers) {
+        // Check network info
+        const provider = contract.runner?.provider;
+        if (provider) {
+          const network = await provider.getNetwork();
+          diagnostics.networkInfo = {
+            chainId: Number(network.chainId),
+            name: network.name,
+          };
+
+          // Check if contract has code
+          const code = await provider.getCode(await contract.getAddress());
+          diagnostics.contractCode = code;
+
+          if (code === "0x" || code.length <= 2) {
+            diagnostics.errors.push(
+              "Contract has no code - not deployed or wrong address"
+            );
+          }
+        }
+
+        // Try to get campaign count
+        try {
+          console.log("🔍 Checking campaign count...");
+          const count = await contract.campaignCount();
+          diagnostics.campaignCount = Number(count);
+          console.log(
+            `📊 Campaign count in contract: ${diagnostics.campaignCount}`
+          );
+        } catch (error: any) {
+          console.error("❌ Failed to get campaign count:", error);
+          diagnostics.errors.push(
+            `Failed to get campaign count: ${error.message}`
+          );
+        }
+
+        // Try to get contract owner
+        try {
+          const owner = await contract.owner();
+          diagnostics.contractOwner = owner;
+        } catch (error: any) {
+          diagnostics.errors.push(
+            `Failed to get contract owner: ${error.message}`
+          );
+        }
+
+        // If there are campaigns, try to get details of each one
+        if (diagnostics.campaignCount > 0) {
+          console.log(
+            `🔍 Checking details of ${diagnostics.campaignCount} campaigns...`
+          );
+          for (let i = 0; i < Math.min(diagnostics.campaignCount, 5); i++) {
+            // Check first 5 campaigns
+            try {
+              console.log(`🔍 Checking campaign ${i} details...`);
+              const campaignInfo = await contract.getCampaignInfo(i);
+              const campaignDetail = {
+                id: i,
+                name: campaignInfo[0],
+                startDate: Number(campaignInfo[1]),
+                endDate: Number(campaignInfo[2]),
+                prizePoolETH: ethers.formatEther(campaignInfo[3]),
+                participantCount: Number(campaignInfo[4]),
+                isActive: campaignInfo[5],
+                prizeDistributed: campaignInfo[6],
+              };
+              diagnostics.campaignDetails.push(campaignDetail);
+              console.log(`✅ Campaign ${i} details:`, campaignDetail);
+            } catch (error: any) {
+              console.error(`❌ Failed to get campaign ${i} details:`, error);
+              diagnostics.errors.push(
+                `Failed to get campaign ${i} details: ${error.message}`
+              );
+            }
+          }
+        }
+      } else {
+        diagnostics.errors.push("Contract or ethers not available");
+      }
+    } catch (error: any) {
+      diagnostics.errors.push(`Diagnostic failed: ${error.message}`);
+    }
+
+    console.log("🔬 Contract diagnostics result:", diagnostics);
+    return diagnostics;
+  }, [contract, contractHealthy, address, ethers]);
+
+  // Function to create a test campaign for debugging purposes
+  const createTestCampaign = useCallback(async (): Promise<{
+    success: boolean;
+    campaignId?: string;
+    error?: string;
+  }> => {
+    if (!contract || !contractHealthy || !isConnected || !ethers) {
+      return {
+        success: false,
+        error: "Contract not available or wallet not connected",
+      };
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log("🧪 Creating test campaign...");
+
+      // Create a test campaign with short duration for testing
+      const now = Math.floor(Date.now() / 1000);
+      const startDate = now + 60; // Start in 1 minute
+      const endDate = now + 3600; // End in 1 hour
+
+      // Handle wallet conflicts more aggressively
+      let provider: any = null;
+      let selectedProvider = null;
+
+      try {
+        // Try to isolate MetaMask specifically
+        const { isolateMetaMaskProvider } = await import("@/lib/wallet-utils");
+        selectedProvider = isolateMetaMaskProvider();
+
+        if (selectedProvider) {
+          console.log("✅ Found MetaMask provider");
+          provider = new ethers.ethers.BrowserProvider(selectedProvider);
+        } else {
+          console.warn("⚠️ MetaMask not found, trying general provider");
+          const generalProvider = getBestProvider();
+          if (generalProvider) {
+            provider = new ethers.ethers.BrowserProvider(generalProvider);
+          }
+        }
+      } catch (providerError) {
+        console.warn("⚠️ Provider isolation failed:", providerError);
+        // Fallback to basic provider
+        const fallbackProvider = getBestProvider();
+        if (fallbackProvider) {
+          provider = new ethers.ethers.BrowserProvider(fallbackProvider);
+        }
+      }
+
+      if (!provider) {
+        throw new Error(
+          "No compatible wallet provider found. Please ensure MetaMask is installed and unlocked."
+        );
+      }
+
+      console.log("🔑 Getting signer...");
+      const signer = await provider.getSigner();
+      const contractWithSigner = contract.connect(signer);
+
+      // Verify signer works
+      const signerAddress = await signer.getAddress();
+      console.log("✅ Signer obtained:", signerAddress);
+
+      console.log("⏳ Creating campaign on blockchain...");
+      const tx = await contractWithSigner.createCampaign(
+        "Test Campaign - Frontend Debug",
+        startDate,
+        endDate
+      );
+
+      console.log("⏳ Waiting for transaction confirmation...");
+      const receipt = await tx.wait();
+
+      console.log("✅ Test campaign created successfully!");
+      console.log(
+        `   📅 Start: ${new Date(startDate * 1000).toLocaleString()}`
+      );
+      console.log(`   📅 End: ${new Date(endDate * 1000).toLocaleString()}`);
+      console.log(`   ⛓️  TX Hash: ${receipt.hash}`);
+
+      return {
+        success: true,
+        campaignId: receipt.hash,
+      };
+    } catch (error: any) {
+      console.error("❌ Failed to create test campaign:", error);
+
+      let errorMessage = "Failed to create test campaign";
+
+      // Handle specific wallet conflict errors
+      if (
+        error.message?.includes("evmAsk.js") ||
+        error.message?.includes("Unexpected error") ||
+        error.message?.includes("selectExtension")
+      ) {
+        errorMessage =
+          "Wallet conflict detected. Please:\n" +
+          "1. Close other wallet extensions (like Phantom)\n" +
+          "2. Refresh the page\n" +
+          "3. Try again with only MetaMask enabled";
+      } else if (
+        error.code === 4001 ||
+        error.message?.includes("user rejected")
+      ) {
+        errorMessage = "Transaction cancelled by user";
+      } else if (error.message?.includes("caller is not the owner")) {
+        errorMessage = "Only the contract owner can create campaigns";
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for transaction";
+      } else if (error.message?.includes("network")) {
+        errorMessage = "Network error. Please check your connection.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [contract, contractHealthy, isConnected, ethers, getBestProvider]);
 
   // Get mountain count - Memoized
   const getMountainCount = useCallback(async (): Promise<number> => {
@@ -1024,5 +1267,9 @@ export function useHike2Earn() {
     requestCampaignCreation,
     getPendingCampaignRequests,
     approveCampaignRequest,
+
+    // Diagnostic functions
+    diagnoseContractState,
+    createTestCampaign,
   };
 }

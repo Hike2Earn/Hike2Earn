@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Sun, Wind, Droplets } from "lucide-react"
+import { Sun, Wind, Droplets } from "lucide-react";
 
 export function WeatherWidget() {
   return (
@@ -42,10 +42,14 @@ export function WeatherWidget() {
 
         {/* Climbing Conditions */}
         <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-          <div className="text-sm font-semibold text-green-600 mb-1">Excellent Climbing Conditions</div>
-          <div className="text-xs text-muted-foreground">Perfect weather for your next adventure</div>
+          <div className="text-sm font-semibold text-green-600 mb-1">
+            Excellent Climbing Conditions
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Perfect weather for your next adventure
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

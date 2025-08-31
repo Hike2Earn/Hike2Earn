@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWallet } from "@/components/wallet-provider";
 import { useAutoMint } from "@/hooks/useAutoMint";
-import { 
-  Calendar, 
-  MapPin, 
-  CheckCircle, 
-  Clock, 
+import {
+  Calendar,
+  MapPin,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Trophy,
-  Camera
+  Camera,
 } from "lucide-react";
 
 interface Campaign {
@@ -30,15 +30,18 @@ interface ReservationSystemProps {
   onReservationChange?: (hasReservation: boolean) => void;
 }
 
-export function ReservationSystem({ campaign, onReservationChange }: ReservationSystemProps) {
+export function ReservationSystem({
+  campaign,
+  onReservationChange,
+}: ReservationSystemProps) {
   const { isConnected, address } = useWallet();
-  const { 
-    createReservation, 
-    hasReservation, 
+  const {
+    createReservation,
+    hasReservation,
     getUserReservations,
-    isProcessing 
+    isProcessing,
   } = useAutoMint();
-  
+
   const [isReserved, setIsReserved] = useState(false);
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,12 +59,21 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
 
     if (hasRes) {
       const reservations = getUserReservations();
-      const reservation = reservations.find(r => r.campaignId === campaign.id);
+      const reservation = reservations.find(
+        (r) => r.campaignId === campaign.id
+      );
       setReservationId(reservation?.id || null);
     }
 
     onReservationChange?.(hasRes);
-  }, [campaign.id, hasReservation, getUserReservations, isConnected, address, onReservationChange]);
+  }, [
+    campaign.id,
+    hasReservation,
+    getUserReservations,
+    isConnected,
+    address,
+    onReservationChange,
+  ]);
 
   const handleReservation = async () => {
     if (!isConnected || !address) return;
@@ -74,11 +86,10 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
         campaign.mountainId,
         campaign.mountain
       );
-      
+
       setReservationId(id);
       setIsReserved(true);
       onReservationChange?.(true);
-      
     } catch (error) {
       console.error("Failed to create reservation:", error);
     } finally {
@@ -88,44 +99,44 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
 
   const getReservationStatus = () => {
     if (!reservationId) return null;
-    
+
     const reservations = getUserReservations();
-    const reservation = reservations.find(r => r.id === reservationId);
-    return reservation?.status || 'reserved';
+    const reservation = reservations.find((r) => r.id === reservationId);
+    return reservation?.status || "reserved";
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      reserved: { 
-        color: "bg-blue-500/20 text-blue-400 border-blue-500/30", 
-        icon: Clock, 
-        label: "Reservado" 
+      reserved: {
+        color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+        icon: Clock,
+        label: "Reservado",
       },
-      in_progress: { 
-        color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", 
-        icon: Clock, 
-        label: "En progreso" 
+      in_progress: {
+        color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+        icon: Clock,
+        label: "En progreso",
       },
-      verifying: { 
-        color: "bg-purple-500/20 text-purple-400 border-purple-500/30", 
-        icon: Camera, 
-        label: "Verificando" 
+      verifying: {
+        color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+        icon: Camera,
+        label: "Verificando",
       },
-      minting: { 
-        color: "bg-orange-500/20 text-orange-400 border-orange-500/30", 
-        icon: Trophy, 
-        label: "Minteando NFT" 
+      minting: {
+        color: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+        icon: Trophy,
+        label: "Minteando NFT",
       },
-      completed: { 
-        color: "bg-green-500/20 text-green-400 border-green-500/30", 
-        icon: CheckCircle, 
-        label: "Completado" 
+      completed: {
+        color: "bg-green-500/20 text-green-400 border-green-500/30",
+        icon: CheckCircle,
+        label: "Completado",
       },
-      failed: { 
-        color: "bg-red-500/20 text-red-400 border-red-500/30", 
-        icon: AlertCircle, 
-        label: "Error" 
-      }
+      failed: {
+        color: "bg-red-500/20 text-red-400 border-red-500/30",
+        icon: AlertCircle,
+        label: "Error",
+      },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -164,10 +175,10 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
     return (
       <div className="text-center p-4 bg-muted/20 rounded-lg border border-muted/30">
         <p className="text-sm text-muted-foreground mb-2">
-          Conecta tu wallet para participar
+          Connect your wallet to participate
         </p>
         <Button variant="outline" size="sm" disabled>
-          Conectar Wallet
+          Connect Wallet
         </Button>
       </div>
     );
@@ -198,17 +209,19 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="w-4 h-4" />
             <span>
-              {new Date(campaign.startDate).toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+              {new Date(campaign.startDate).toLocaleDateString("es-ES", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               })}
             </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="w-4 h-4" />
-            <span>{campaign.mountain} - {campaign.location}</span>
+            <span>
+              {campaign.mountain} - {campaign.location}
+            </span>
           </div>
         </div>
 
@@ -217,28 +230,36 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
           {isEventUpcoming() && (
             <div className="flex items-center gap-2 text-blue-400">
               <Clock className="w-4 h-4" />
-              <span className="text-sm">Evento próximo - Prepárate para la aventura</span>
-            </div>
-          )}
-          
-          {isEventActive() && (
-            <div className="flex items-center gap-2 text-green-400">
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm">¡Evento activo! - Ya puedes subir tu verificación</span>
-            </div>
-          )}
-          
-          {isEventPast() && status === 'reserved' && (
-            <div className="flex items-center gap-2 text-orange-400">
-              <Camera className="w-4 h-4" />
-              <span className="text-sm">Evento finalizado - Sube tu verificación para obtener el NFT</span>
+              <span className="text-sm">
+                Evento próximo - Prepárate para la aventura
+              </span>
             </div>
           )}
 
-          {status === 'completed' && (
+          {isEventActive() && (
+            <div className="flex items-center gap-2 text-green-400">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm">
+                ¡Evento activo! - Ya puedes subir tu verificación
+              </span>
+            </div>
+          )}
+
+          {isEventPast() && status === "reserved" && (
+            <div className="flex items-center gap-2 text-orange-400">
+              <Camera className="w-4 h-4" />
+              <span className="text-sm">
+                Evento finalizado - Sube tu verificación para obtener el NFT
+              </span>
+            </div>
+          )}
+
+          {status === "completed" && (
             <div className="flex items-center gap-2 text-green-400">
               <Trophy className="w-4 h-4" />
-              <span className="text-sm">¡Felicidades! NFT minteado exitosamente</span>
+              <span className="text-sm">
+                ¡Felicidades! NFT minteado exitosamente
+              </span>
             </div>
           )}
         </div>
@@ -263,22 +284,24 @@ export function ReservationSystem({ campaign, onReservationChange }: Reservation
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-4 h-4" />
           <span>
-            {new Date(campaign.startDate).toLocaleDateString('es-ES', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
+            {new Date(campaign.startDate).toLocaleDateString("es-ES", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             })}
           </span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <MapPin className="w-4 h-4" />
-          <span>{campaign.mountain} - {campaign.location}</span>
+          <span>
+            {campaign.mountain} - {campaign.location}
+          </span>
         </div>
       </div>
 
       {/* Reservation Button */}
-      <Button 
+      <Button
         onClick={handleReservation}
         disabled={loading || isEventPast()}
         className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"

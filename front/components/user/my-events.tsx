@@ -18,25 +18,32 @@ import {
   Mountain,
   Sparkles,
   RefreshCw,
-  Eye
+  Eye,
 } from "lucide-react";
-import { CampaignReservation, SummitVerification } from "@/lib/localStorage-manager";
+import {
+  CampaignReservation,
+  SummitVerification,
+} from "@/lib/localStorage-manager";
 
 export function MyEvents() {
   const { isConnected, address } = useWallet();
-  const { 
-    getUserReservations, 
+  const {
+    getUserReservations,
     getUserSummitVerifications,
     retryMinting,
-    isProcessing 
+    isProcessing,
   } = useAutoMint();
-  
+
   const [reservations, setReservations] = useState<CampaignReservation[]>([]);
-  const [summitVerifications, setSummitVerifications] = useState<SummitVerification[]>([]);
-  const [selectedReservation, setSelectedReservation] = useState<CampaignReservation | null>(null);
-  const [selectedSummit, setSelectedSummit] = useState<SummitVerification | null>(null);
+  const [summitVerifications, setSummitVerifications] = useState<
+    SummitVerification[]
+  >([]);
+  const [selectedReservation, setSelectedReservation] =
+    useState<CampaignReservation | null>(null);
+  const [selectedSummit, setSelectedSummit] =
+    useState<SummitVerification | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [modalType, setModalType] = useState<'campaign' | 'summit'>('campaign');
+  const [modalType, setModalType] = useState<"campaign" | "summit">("campaign");
 
   // Load user data
   useEffect(() => {
@@ -59,21 +66,49 @@ export function MyEvents() {
 
   const getStatusConfig = (status: string) => {
     const configs = {
-      reserved: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Clock, label: "Reservado" },
-      in_progress: { color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Clock, label: "En Progreso" },
-      verifying: { color: "bg-purple-500/20 text-purple-400 border-purple-500/30", icon: Camera, label: "Verificando" },
-      minting: { color: "bg-orange-500/20 text-orange-400 border-orange-500/30", icon: Trophy, label: "Minteando NFT" },
-      completed: { color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle, label: "Completado" },
-      failed: { color: "bg-red-500/20 text-red-400 border-red-500/30", icon: AlertCircle, label: "Error" },
-      pending: { color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: Clock, label: "Pendiente" }
+      reserved: {
+        color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+        icon: Clock,
+        label: "Reservado",
+      },
+      in_progress: {
+        color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+        icon: Clock,
+        label: "En Progreso",
+      },
+      verifying: {
+        color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+        icon: Camera,
+        label: "Verificando",
+      },
+      minting: {
+        color: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+        icon: Trophy,
+        label: "Minteando NFT",
+      },
+      completed: {
+        color: "bg-green-500/20 text-green-400 border-green-500/30",
+        icon: CheckCircle,
+        label: "Completado",
+      },
+      failed: {
+        color: "bg-red-500/20 text-red-400 border-red-500/30",
+        icon: AlertCircle,
+        label: "Error",
+      },
+      pending: {
+        color: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+        icon: Clock,
+        label: "Pendiente",
+      },
     };
-    
+
     return configs[status as keyof typeof configs] || configs.pending;
   };
 
   const canVerify = (reservation: CampaignReservation): boolean => {
-    if (reservation.status !== 'reserved') return false;
-    
+    if (reservation.status !== "reserved") return false;
+
     // Check if event has ended (mock logic for demo)
     const now = new Date();
     const mockEndDate = new Date(reservation.reservedAt + 24 * 60 * 60 * 1000); // 24 hours after reservation
@@ -83,18 +118,18 @@ export function MyEvents() {
   const handleVerify = (reservation: CampaignReservation) => {
     setSelectedReservation(reservation);
     setSelectedSummit(null);
-    setModalType('campaign');
+    setModalType("campaign");
     setShowVerificationModal(true);
   };
 
   const handleSummitVerify = (summit: SummitVerification) => {
     setSelectedSummit(summit);
     setSelectedReservation(null);
-    setModalType('summit');
+    setModalType("summit");
     setShowVerificationModal(true);
   };
 
-  const handleRetry = async (type: 'campaign' | 'summit', id: string) => {
+  const handleRetry = async (type: "campaign" | "summit", id: string) => {
     try {
       const result = await retryMinting(type, id);
       if (result.success) {
@@ -116,9 +151,9 @@ export function MyEvents() {
     return (
       <div className="text-center p-8">
         <Mountain className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Conecta tu Wallet</h3>
+        <h3 className="text-lg font-semibold mb-2">Connect your Wallet</h3>
         <p className="text-muted-foreground">
-          Conecta tu wallet para ver tus eventos y verificaciones
+          Connect your wallet to view your events and verifications
         </p>
       </div>
     );
@@ -149,7 +184,8 @@ export function MyEvents() {
         <div>
           <h2 className="text-2xl font-bold">Mis Eventos</h2>
           <p className="text-muted-foreground">
-            {totalEvents} evento{totalEvents !== 1 ? 's' : ''} total{totalEvents !== 1 ? 'es' : ''}
+            {totalEvents} evento{totalEvents !== 1 ? "s" : ""} total
+            {totalEvents !== 1 ? "es" : ""}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={refreshData}>
@@ -165,7 +201,7 @@ export function MyEvents() {
             <Trophy className="w-5 h-5" />
             Eventos de Campañas ({reservations.length})
           </h3>
-          
+
           <div className="grid gap-4">
             {reservations.map((reservation) => {
               const statusConfig = getStatusConfig(reservation.status);
@@ -173,11 +209,16 @@ export function MyEvents() {
               const canVerifyNow = canVerify(reservation);
 
               return (
-                <Card key={reservation.id} className="backdrop-blur-md bg-white/10 border-white/20">
+                <Card
+                  key={reservation.id}
+                  className="backdrop-blur-md bg-white/10 border-white/20"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-lg">{reservation.campaignTitle}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {reservation.campaignTitle}
+                        </CardTitle>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                           <span className="flex items-center gap-1">
                             <Mountain className="w-3 h-3" />
@@ -185,7 +226,9 @@ export function MyEvents() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(reservation.reservedAt).toLocaleDateString()}
+                            {new Date(
+                              reservation.reservedAt
+                            ).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
@@ -195,7 +238,7 @@ export function MyEvents() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pt-0">
                     <div className="space-y-3">
                       {/* NFT Info */}
@@ -203,26 +246,34 @@ export function MyEvents() {
                         <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
                             <Sparkles className="w-4 h-4 text-green-400" />
-                            <span className="text-sm font-medium text-green-400">NFT Minteado</span>
+                            <span className="text-sm font-medium text-green-400">
+                              NFT Minteado
+                            </span>
                           </div>
-                          <p className="text-xs text-green-300">Token ID: {reservation.nftTokenId}</p>
+                          <p className="text-xs text-green-300">
+                            Token ID: {reservation.nftTokenId}
+                          </p>
                         </div>
                       )}
 
                       {/* Error Info */}
-                      {reservation.status === 'failed' && reservation.error && (
+                      {reservation.status === "failed" && reservation.error && (
                         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
                             <AlertCircle className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-medium text-red-400">Error</span>
+                            <span className="text-sm font-medium text-red-400">
+                              Error
+                            </span>
                           </div>
-                          <p className="text-xs text-red-300">{reservation.error}</p>
+                          <p className="text-xs text-red-300">
+                            {reservation.error}
+                          </p>
                         </div>
                       )}
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
-                        {canVerifyNow && reservation.status === 'reserved' && (
+                        {canVerifyNow && reservation.status === "reserved" && (
                           <Button
                             size="sm"
                             onClick={() => handleVerify(reservation)}
@@ -233,11 +284,13 @@ export function MyEvents() {
                           </Button>
                         )}
 
-                        {reservation.status === 'failed' && (
+                        {reservation.status === "failed" && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleRetry('campaign', reservation.id)}
+                            onClick={() =>
+                              handleRetry("campaign", reservation.id)
+                            }
                             disabled={isProcessing}
                           >
                             <RefreshCw className="w-4 h-4 mr-2" />
@@ -245,29 +298,33 @@ export function MyEvents() {
                           </Button>
                         )}
 
-                        {reservation.verificationPhotos && reservation.verificationPhotos.length > 0 && (
-                          <Button size="sm" variant="outline">
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Fotos ({reservation.verificationPhotos.length})
-                          </Button>
-                        )}
+                        {reservation.verificationPhotos &&
+                          reservation.verificationPhotos.length > 0 && (
+                            <Button size="sm" variant="outline">
+                              <Eye className="w-4 h-4 mr-2" />
+                              Ver Fotos ({reservation.verificationPhotos.length}
+                              )
+                            </Button>
+                          )}
                       </div>
 
                       {/* Status Messages */}
-                      {reservation.status === 'reserved' && !canVerifyNow && (
+                      {reservation.status === "reserved" && !canVerifyNow && (
                         <p className="text-xs text-muted-foreground">
-                          Espera hasta que termine el evento para verificar tu participación
+                          Wait until the event ends to verify your participation
                         </p>
                       )}
 
-                      {reservation.status === 'verifying' && (
+                      {reservation.status === "verifying" && (
                         <div className="flex items-center gap-2 text-purple-400">
                           <div className="w-3 h-3 animate-spin rounded-full border border-purple-400 border-t-transparent" />
-                          <span className="text-xs">Verificación en proceso...</span>
+                          <span className="text-xs">
+                            Verificación en proceso...
+                          </span>
                         </div>
                       )}
 
-                      {reservation.status === 'minting' && (
+                      {reservation.status === "minting" && (
                         <div className="flex items-center gap-2 text-orange-400">
                           <div className="w-3 h-3 animate-spin rounded-full border border-orange-400 border-t-transparent" />
                           <span className="text-xs">Minteando NFT...</span>
@@ -289,18 +346,23 @@ export function MyEvents() {
             <Mountain className="w-5 h-5" />
             Verificaciones de Cumbres ({summitVerifications.length})
           </h3>
-          
+
           <div className="grid gap-4">
             {summitVerifications.map((summit) => {
               const statusConfig = getStatusConfig(summit.status);
               const StatusIcon = statusConfig.icon;
 
               return (
-                <Card key={summit.id} className="backdrop-blur-md bg-white/10 border-white/20">
+                <Card
+                  key={summit.id}
+                  className="backdrop-blur-md bg-white/10 border-white/20"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-lg">{summit.mountainName}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {summit.mountainName}
+                        </CardTitle>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(summit.createdAt).toLocaleDateString()}
@@ -312,7 +374,7 @@ export function MyEvents() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pt-0">
                     <div className="space-y-3">
                       {/* NFT Info */}
@@ -320,18 +382,24 @@ export function MyEvents() {
                         <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
                             <Sparkles className="w-4 h-4 text-green-400" />
-                            <span className="text-sm font-medium text-green-400">NFT Minteado</span>
+                            <span className="text-sm font-medium text-green-400">
+                              NFT Minteado
+                            </span>
                           </div>
-                          <p className="text-xs text-green-300">Token ID: {summit.nftTokenId}</p>
+                          <p className="text-xs text-green-300">
+                            Token ID: {summit.nftTokenId}
+                          </p>
                         </div>
                       )}
 
                       {/* Error Info */}
-                      {summit.status === 'failed' && summit.error && (
+                      {summit.status === "failed" && summit.error && (
                         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
                             <AlertCircle className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-medium text-red-400">Error</span>
+                            <span className="text-sm font-medium text-red-400">
+                              Error
+                            </span>
                           </div>
                           <p className="text-xs text-red-300">{summit.error}</p>
                         </div>
@@ -339,11 +407,11 @@ export function MyEvents() {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
-                        {summit.status === 'failed' && (
+                        {summit.status === "failed" && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleRetry('summit', summit.id)}
+                            onClick={() => handleRetry("summit", summit.id)}
                             disabled={isProcessing}
                           >
                             <RefreshCw className="w-4 h-4 mr-2" />
@@ -358,14 +426,16 @@ export function MyEvents() {
                       </div>
 
                       {/* Status Messages */}
-                      {summit.status === 'verifying' && (
+                      {summit.status === "verifying" && (
                         <div className="flex items-center gap-2 text-purple-400">
                           <div className="w-3 h-3 animate-spin rounded-full border border-purple-400 border-t-transparent" />
-                          <span className="text-xs">Verificación en proceso...</span>
+                          <span className="text-xs">
+                            Verificación en proceso...
+                          </span>
                         </div>
                       )}
 
-                      {summit.status === 'minting' && (
+                      {summit.status === "minting" && (
                         <div className="flex items-center gap-2 text-orange-400">
                           <div className="w-3 h-3 animate-spin rounded-full border border-orange-400 border-t-transparent" />
                           <span className="text-xs">Minteando NFT...</span>

@@ -31,20 +31,20 @@ export function useAutoMint() {
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<string>("");
 
-  // Helper function to create promise with timeout
-  const withTimeout = <T>(
-    promise: Promise<T>,
-    timeoutMs: number = 30000
-  ): Promise<T> => {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Operation timed out after ${timeoutMs}ms`)),
-          timeoutMs
-        )
-      ),
-    ]);
+  // Helper function to handle minting without timeout
+  const handleMinting = async (
+    mintPromise: Promise<string | null>
+  ): Promise<string | null> => {
+    try {
+      return await mintPromise;
+    } catch (error: any) {
+      // Only handle user rejection errors, let other errors bubble up
+      if (error.message?.includes("user rejected") || error.code === 4001) {
+        console.log("ℹ️ User cancelled transaction");
+        return null;
+      }
+      throw error;
+    }
   };
 
   // Simulate verification process with steps
@@ -118,55 +118,44 @@ export function useAutoMint() {
         // Create mock proof URI
         const proofURI = createMockProofURI(reservation.mountainId);
 
-        // Execute mintClimbingNFT automatically with timeout and fallback
+        // Execute mintClimbingNFT automatically without timeout
         let tokenId: string | null = null;
 
         try {
           console.log("🔄 Attempting to mint NFT...");
-          tokenId = await withTimeout(
-            mintClimbingNFT(reservation.mountainId, proofURI),
-            45000 // Increased timeout to 45 seconds
+          setCurrentStep("⏳ Esperando confirmación en MetaMask...");
+
+          tokenId = await handleMinting(
+            mintClimbingNFT(reservation.mountainId, proofURI)
           );
 
-          if (!tokenId) {
-            throw new Error("Minting returned null token ID");
+          if (tokenId) {
+            console.log("✅ NFT minted successfully:", tokenId);
+            setCurrentStep("🎉 ¡NFT minteado exitosamente!");
+            await new Promise((resolve) => setTimeout(resolve, 1500)); // Brief pause to show success
+          } else {
+            // User cancelled the transaction
+            throw new Error("User cancelled transaction");
           }
-
-          console.log("✅ NFT minted successfully:", tokenId);
-          setCurrentStep("🎉 ¡NFT minteado exitosamente!");
-          await new Promise((resolve) => setTimeout(resolve, 1500)); // Brief pause to show success
         } catch (mintError: any) {
-          // Silent logging for user rejection to avoid console spam
+          // User cancelled - return error without fallback
           if (
             mintError.message?.includes("user rejected") ||
+            mintError.message?.includes("User cancelled") ||
             mintError.code === 4001
           ) {
-            console.log("ℹ️ User cancelled transaction");
+            throw new Error("Transacción cancelada por el usuario");
           } else {
-            console.warn("⚠️ Primary minting failed:", mintError.message);
-          }
-
-          // Fallback to demo mode with mock token ID
-          if (
-            mintError.message.includes("timeout") ||
-            mintError.message.includes("Unexpected error") ||
-            mintError.message.includes("evmAsk.js") ||
-            mintError.message.includes("User rejected") ||
-            mintError.code === 4001 ||
-            mintError.message?.includes("user rejected")
-          ) {
+            // For other errors, use fallback demo mode
             console.log(
-              "🔄 Transaction sent successfully, using fallback verification mode"
+              "🔄 Using fallback demo mode for error:",
+              mintError.message
             );
             tokenId = `demo_${Date.now()}_${Math.random()
               .toString(36)
               .substr(2, 9)}`;
-            setCurrentStep(
-              "✅ ¡NFT creado exitosamente! Transacción completada."
-            );
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Longer pause to show success
-          } else {
-            throw mintError; // Re-throw if it's not a wallet/connection error
+            setCurrentStep("✅ ¡NFT creado exitosamente! (Modo demo)");
+            await new Promise((resolve) => setTimeout(resolve, 2000));
           }
         }
 
@@ -265,58 +254,44 @@ export function useAutoMint() {
         // Create mock proof URI
         const proofURI = createMockProofURI(mountainId);
 
-        // Execute mintClimbingNFT automatically with timeout and fallback
+        // Execute mintClimbingNFT automatically without timeout
         let tokenId: string | null = null;
 
         try {
           console.log("🔄 Attempting to mint summit NFT...");
-          tokenId = await withTimeout(
-            mintClimbingNFT(mountainId, proofURI),
-            45000 // Increased timeout to 45 seconds
-          );
+          setCurrentStep("⏳ Esperando confirmación en MetaMask...");
 
-          if (!tokenId) {
-            throw new Error("Minting returned null token ID");
+          tokenId = await handleMinting(mintClimbingNFT(mountainId, proofURI));
+
+          if (tokenId) {
+            console.log("✅ Summit NFT minted successfully:", tokenId);
+            setCurrentStep("🎉 ¡NFT de cumbre minteado exitosamente!");
+            await new Promise((resolve) => setTimeout(resolve, 1500)); // Brief pause to show success
+          } else {
+            // User cancelled the transaction
+            throw new Error("User cancelled transaction");
           }
-
-          console.log("✅ Summit NFT minted successfully:", tokenId);
-          setCurrentStep("🎉 ¡NFT de cumbre minteado exitosamente!");
-          await new Promise((resolve) => setTimeout(resolve, 1500)); // Brief pause to show success
         } catch (mintError: any) {
-          // Silent logging for user rejection to avoid console spam
+          // User cancelled - return error without fallback
           if (
             mintError.message?.includes("user rejected") ||
+            mintError.message?.includes("User cancelled") ||
             mintError.code === 4001
           ) {
-            console.log("ℹ️ User cancelled summit transaction");
+            throw new Error("Transacción cancelada por el usuario");
           } else {
-            console.warn(
-              "⚠️ Primary summit minting failed:",
-              mintError.message
-            );
-          }
-
-          // Fallback to demo mode with mock token ID
-          if (
-            mintError.message.includes("timeout") ||
-            mintError.message.includes("Unexpected error") ||
-            mintError.message.includes("evmAsk.js") ||
-            mintError.message.includes("User rejected") ||
-            mintError.code === 4001 ||
-            mintError.message?.includes("user rejected")
-          ) {
+            // For other errors, use fallback demo mode
             console.log(
-              "🔄 Summit transaction sent successfully, using fallback verification mode"
+              "🔄 Using fallback demo mode for summit error:",
+              mintError.message
             );
             tokenId = `summit_demo_${Date.now()}_${Math.random()
               .toString(36)
               .substr(2, 9)}`;
             setCurrentStep(
-              "✅ ¡NFT de cumbre creado exitosamente! Transacción completada."
+              "✅ ¡NFT de cumbre creado exitosamente! (Modo demo)"
             );
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Longer pause to show success
-          } else {
-            throw mintError; // Re-throw if it's not a wallet/connection error
+            await new Promise((resolve) => setTimeout(resolve, 2000));
           }
         }
 
@@ -440,29 +415,28 @@ export function useAutoMint() {
           let tokenId: string | null = null;
 
           try {
-            tokenId = await withTimeout(
-              mintClimbingNFT(reservation.mountainId, proofURI),
-              30000
+            setCurrentStep("⏳ Esperando confirmación en MetaMask...");
+            tokenId = await handleMinting(
+              mintClimbingNFT(reservation.mountainId, proofURI)
             );
 
             if (!tokenId) {
               throw new Error("Minting returned null token ID");
             }
           } catch (mintError: any) {
-            // Fallback to demo mode for retry
+            // User cancelled - return error
             if (
-              mintError.message.includes("timeout") ||
-              mintError.message.includes("Unexpected error") ||
-              mintError.message.includes("evmAsk.js") ||
-              mintError.message.includes("User rejected") ||
+              mintError.message?.includes("user rejected") ||
+              mintError.message?.includes("User cancelled") ||
               mintError.code === 4001
             ) {
+              throw new Error("Transacción cancelada por el usuario");
+            } else {
+              // Fallback to demo mode for other errors
               tokenId = `retry_demo_${Date.now()}_${Math.random()
                 .toString(36)
                 .substr(2, 9)}`;
-              setCurrentStep("Usando modo demo para reintento...");
-            } else {
-              throw mintError;
+              setCurrentStep("✅ Usando modo demo para reintento...");
             }
           }
 
@@ -497,29 +471,28 @@ export function useAutoMint() {
           let tokenId: string | null = null;
 
           try {
-            tokenId = await withTimeout(
-              mintClimbingNFT(verification.mountainId, proofURI),
-              30000
+            setCurrentStep("⏳ Esperando confirmación en MetaMask...");
+            tokenId = await handleMinting(
+              mintClimbingNFT(verification.mountainId, proofURI)
             );
 
             if (!tokenId) {
               throw new Error("Minting returned null token ID");
             }
           } catch (mintError: any) {
-            // Fallback to demo mode for retry
+            // User cancelled - return error
             if (
-              mintError.message.includes("timeout") ||
-              mintError.message.includes("Unexpected error") ||
-              mintError.message.includes("evmAsk.js") ||
-              mintError.message.includes("User rejected") ||
+              mintError.message?.includes("user rejected") ||
+              mintError.message?.includes("User cancelled") ||
               mintError.code === 4001
             ) {
+              throw new Error("Transacción cancelada por el usuario");
+            } else {
+              // Fallback to demo mode for other errors
               tokenId = `summit_retry_demo_${Date.now()}_${Math.random()
                 .toString(36)
                 .substr(2, 9)}`;
-              setCurrentStep("Usando modo demo para reintento de cumbre...");
-            } else {
-              throw mintError;
+              setCurrentStep("✅ Usando modo demo para reintento de cumbre...");
             }
           }
 

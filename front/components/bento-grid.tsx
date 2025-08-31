@@ -22,7 +22,7 @@ export function BentoGrid({
     <div
       className={`
       grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2
-      lg:grid-rows-[minmax(200px,1fr)_minmax(200px,auto)_auto]
+      lg:grid-rows-[minmax(150px,1fr)_minmax(200px,auto)_auto]
       transition-all duration-300 ease-in-out
       ${sidePanelOpen ? "lg:grid-cols-3 lg:mr-[28rem]" : "lg:grid-cols-4"}
     `}
@@ -31,7 +31,7 @@ export function BentoGrid({
       <div
         className={`
         lg:row-span-2 lg:col-start-1 lg:row-start-1
-        max-h-[400px] lg:max-h-[500px] overflow-hidden
+        max-h-[300px] lg:max-h-[350px] overflow-hidden
         ${sidePanelOpen ? "lg:col-span-1" : "lg:col-span-2"}
       `}
       >

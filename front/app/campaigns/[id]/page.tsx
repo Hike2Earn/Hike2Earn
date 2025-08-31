@@ -65,108 +65,70 @@ interface Campaign {
 // Mock data - in real app this would come from an API
 const mockCampaign: Campaign = {
   id: "1",
-  title: "Aconcagua Summit Expedition",
+  title: "Aconcagua Trail Cleanup",
   description:
-    "Join us for an epic 14-day expedition to reach the highest peak in the Americas at 6,962m.",
+    "Help preserve the beautiful Aconcagua trails while enjoying nature and earning rewards.",
   longDescription:
-    "The Aconcagua Summit Expedition is a once-in-a-lifetime adventure to the highest peak in both the Western and Southern Hemispheres. This challenging expedition will test your physical and mental limits while rewarding you with breathtaking views and an incredible sense of accomplishment.\n\nOur experienced guides will lead you through the Polish Glacier route, considered one of the most scenic and challenging approaches to the summit. You'll acclimatize properly at various camps, learn advanced mountaineering techniques, and experience the raw beauty of the Andes mountains.\n\nThis expedition is perfect for experienced mountaineers looking to add a major peak to their resume. Previous high-altitude experience is strongly recommended.",
-  type: "summit",
-  difficulty: "expert",
+    "Join our environmental initiative to clean and maintain the Aconcagua trails, one of the most iconic mountaineering routes in the world. This 3-day cleanup campaign combines environmental responsibility with the opportunity to experience the stunning beauty of the Andes.\n\nOur team will provide all necessary equipment and training for safe and effective trail maintenance. You'll work alongside experienced guides to collect litter, repair trail damage, and ensure that future generations can enjoy these magnificent mountains in their pristine condition.\n\nThis campaign is perfect for outdoor enthusiasts who want to give back to the mountaineering community while earning rewards. No previous mountaineering experience required - just a passion for preserving our natural environment.",
+  type: "cleanup",
+  difficulty: "intermediate",
   mountain: "Aconcagua",
   location: "Mendoza, Argentina",
   startDate: "2025-12-15",
   endDate: "2025-12-29",
-  duration: "14 days",
-  participants: 8,
-  maxParticipants: 12,
-  reward: 2500,
+  duration: "3 days",
+  participants: 12,
+  maxParticipants: 25,
+  reward: 1000,
   image: "/cerros/cerroAconcagua.jpg",
   elevation: "6,962m",
   distance: "45km total",
-  terrain: "High altitude, rocky, glaciated",
-  weather: "-20°C to 5°C, strong winds possible",
-  technicalRating: "PD+ (Peu Difficile Plus)",
+  terrain: "Mountain trails, moderate altitude",
+  weather: "5°C to 20°C, variable conditions",
+  technicalRating: "F (Facile)",
   equipment: [
-    "4-season mountaineering boots",
-    "Crampons (12-point)",
-    "Ice axe",
-    "Mountaineering helmet",
-    "Harness and climbing gear",
-    "High-altitude sleeping bag (-20°C)",
+    "Hiking boots",
+    "Work gloves",
+    "Trash bags and collection tools",
+    "Daypack",
+    "Water bottle",
+    "Sunscreen and hat",
+    "Light jacket",
     "All camping equipment provided",
   ],
   itinerary: [
     {
       day: 1,
-      title: "Arrival in Mendoza",
-      description: "Team briefing, equipment check, and final preparations",
+      title: "Arrival in Mendoza & Training",
+      description:
+        "Team briefing, safety training, equipment distribution, and environmental awareness session",
     },
     {
       day: 2,
-      title: "Drive to Penitentes",
-      description: "Approach hike to Confluencia Base Camp (3,400m)",
+      title: "Trail Cleanup Day",
+      description:
+        "Full day of trail maintenance and cleanup work on Aconcagua access routes, collecting litter and repairing trail damage",
     },
     {
       day: 3,
-      title: "Acclimatization Day",
-      description: "Rest day at Confluencia, short hikes nearby",
+      title: "Final Cleanup & Celebration",
+      description:
+        "Morning cleanup work, environmental impact assessment, team celebration, and return to Mendoza",
     },
-    {
-      day: 4,
-      title: "Plaza de Mulas",
-      description: "Trek to Plaza de Mulas Base Camp (4,300m)",
-    },
-    {
-      day: 5 - 6,
-      title: "Base Camp Setup",
-      description: "Rest, acclimatization, and equipment preparation",
-    },
-    {
-      day: 7,
-      title: "Camp Canada",
-      description: "Carry loads to Camp Canada (5,050m)",
-    },
-    {
-      day: 8,
-      title: "Rest Day",
-      description: "Active recovery at Plaza de Mulas",
-    },
-    {
-      day: 9,
-      title: "Camp Nido",
-      description: "Move to Camp Nido de Cóndores (5,570m)",
-    },
-    {
-      day: 10,
-      title: "Acclimatization",
-      description: "Practice technical skills, rest day",
-    },
-    {
-      day: 11,
-      title: "Camp Berlin",
-      description: "Move to high camp Berlin (6,000m)",
-    },
-    {
-      day: 12,
-      title: "Summit Day",
-      description: "Summit attempt (6,962m) and return to Berlin",
-    },
-    { day: 13, title: "Descent", description: "Descend to Plaza de Mulas" },
-    { day: 14, title: "Return", description: "Hike out and return to Mendoza" },
   ],
   safetyGuidelines: [
-    "Mandatory mountain insurance required",
-    "Previous high-altitude experience (5,000m+) required",
-    "Medical clearance from physician required",
-    "Emergency evacuation insurance recommended",
+    "Basic fitness level recommended",
+    "Environmental awareness training provided",
+    "Weather-appropriate clothing required",
     "Guides certified in wilderness first aid",
-    "Satellite communication for emergencies",
+    "Emergency communication equipment",
+    "Safe waste disposal procedures",
   ],
   meetingPoint: "Hotel Aconcagua, Mendoza city center",
   guide: {
-    name: "Carlos Mendez",
-    experience: "15+ years guiding in the Andes",
-    rating: 4.9,
+    name: "Maria Rodriguez",
+    experience: "8+ years in environmental conservation and trail maintenance",
+    rating: 4.8,
     avatar: "/guides/carlos.jpg",
   },
   participantAvatars: [
@@ -586,11 +548,11 @@ export default function CampaignDetailsPage() {
                 <div className="mt-6 pt-6 border-t border-white/10">
                   <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                     <Mountain className="w-4 h-4" />
-                    ¿Solo quieres verificar la cumbre?
+                    Just want to verify the summit?
                   </h4>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Si ya subiste {campaign.mountain} por tu cuenta, puedes
-                    verificar tu cumbre directamente.
+                    If you've already climbed {campaign.mountain} on your own, you can
+                    verify your summit directly.
                   </p>
                   <Button
                     variant="outline"
@@ -599,7 +561,7 @@ export default function CampaignDetailsPage() {
                     className="w-full"
                   >
                     <Camera className="w-4 h-4 mr-2" />
-                    Verificar Cumbre Directamente
+                    Verify Summit Directly
                   </Button>
                 </div>
               </div>

@@ -386,9 +386,15 @@ export async function estimateContractGas(): Promise<{
       );
       result.createCampaign = gasEstimate.toString() + " wei";
     } catch (error: any) {
-      result.errors.push(
-        `createCampaign gas estimation failed: ${error.message}`
-      );
+      // Handle permission errors gracefully
+      if (error.message?.includes("Ownable: caller is not the owner")) {
+        result.createCampaign =
+          "Requires owner permissions (normal for non-owner users)";
+      } else {
+        result.errors.push(
+          `createCampaign gas estimation failed: ${error.message}`
+        );
+      }
     }
   } catch (error: any) {
     result.errors.push(`Gas estimation failed: ${error.message}`);

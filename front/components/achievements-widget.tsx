@@ -63,7 +63,7 @@ const nftAchievements: NFTAchievement[] = [
   {
     id: 2,
     name: "Cerro Aconcagua Warrior",
-    description: "Conquistaste la cumbre más alta de América",
+    description: "You conquered the highest peak in the Americas",
     image: "/cerros/cerroAconcagua.jpg",
     rarity: "rare",
     type: "campaign",
@@ -123,7 +123,7 @@ const nftAchievements: NFTAchievement[] = [
   {
     id: 6,
     name: "Cerro San Bernardo Guardian",
-    description: "Protector de las cumbres eternas de Chile",
+    description: "Protector of Chile's eternal peaks",
     image: "/cerros/cerroSanBernardo2.jpg",
     rarity: "legendary",
     type: "campaign",

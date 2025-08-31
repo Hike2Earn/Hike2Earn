@@ -85,8 +85,12 @@ const mendozaPeaks = [
 interface CampaignFormData {
   name: string;
   description: string;
+  type: string;
+  difficulty: string;
+  location: string;
   startDate: string;
   endDate: string;
+  maxParticipants: string;
   prizePoolLSK: string;
   selectedMountains: number[];
 }
@@ -118,8 +122,12 @@ export function CreateCampaignModal({
   const [formData, setFormData] = useState<CampaignFormData>({
     name: "",
     description: "",
+    type: "",
+    difficulty: "",
+    location: "",
     startDate: "",
     endDate: "",
+    maxParticipants: "",
     prizePoolLSK: "",
     selectedMountains: [],
   });
@@ -153,10 +161,16 @@ export function CreateCampaignModal({
     if (!formData.name.trim()) newErrors.name = "Campaign name is required";
     if (!formData.description.trim())
       newErrors.description = "Description is required";
+    if (!formData.type) newErrors.type = "Campaign type is required";
+    if (!formData.difficulty)
+      newErrors.difficulty = "Difficulty level is required";
     if (!formData.startDate) newErrors.startDate = "Start date is required";
     if (!formData.endDate) newErrors.endDate = "End date is required";
     if (formData.selectedMountains.length === 0)
       newErrors.mountains = "Select at least one mountain";
+    if (!formData.maxParticipants || parseInt(formData.maxParticipants) < 1) {
+      newErrors.maxParticipants = "Max participants must be at least 1";
+    }
 
     if (new Date(formData.startDate) >= new Date(formData.endDate)) {
       newErrors.endDate = "End date must be after start date";
@@ -178,22 +192,7 @@ export function CreateCampaignModal({
     setContractError(null);
     setCreationStep("validating");
 
-    // Check wallet connection
-    if (!isConnected) {
-      setErrors({ wallet: "Please connect your wallet first" });
-      setCreationStep("error");
-      return;
-    }
-
-    // Check contract health
-    if (!contractHealthy) {
-      setErrors({
-        contract:
-          "Smart contract is not available. Please check your wallet connection and network.",
-      });
-      setCreationStep("error");
-      return;
-    }
+    // Basic validation only (no wallet/contract checks needed for local campaigns)
 
     // Validate form
     if (!validateForm()) {
@@ -218,53 +217,42 @@ export function CreateCampaignModal({
 
       console.log("🕒 Timestamps:", { startTimestamp, endTimestamp });
 
-      // Create campaign request using the new partnership system
-      const result = await requestCampaignCreation({
+      // Create campaign directly (skip partnership request system)
+      const campaignData = {
         name: formData.name,
+        description: formData.description,
         startDate: startTimestamp,
         endDate: endTimestamp,
-        description: formData.description,
-        mountainIds: formData.selectedMountains,
         prizePoolLSK: formData.prizePoolLSK
           ? parseFloat(formData.prizePoolLSK)
           : 0,
-      });
+        mountainIds: formData.selectedMountains,
+        erc20Tokens: [],
+        erc20Amounts: [],
+      };
 
-      if (result.success) {
-        console.log(
-          "✅ Campaign request submitted successfully:",
-          result.campaignId
-        );
-        setTxHash(result.campaignId || "request_submitted");
-        setCreationStep("success");
+      console.log("📝 Creating campaign with data:", campaignData);
 
-        // Also call the parent callback for UI updates
-        try {
-          const campaignData = {
-            name: formData.name,
-            description: formData.description,
-            startDate: startTimestamp,
-            endDate: endTimestamp,
-            prizePoolLSK: formData.prizePoolLSK
-              ? parseFloat(formData.prizePoolLSK)
-              : 0,
-            mountainIds: formData.selectedMountains,
-          };
-          await onCreateCampaign(campaignData);
-        } catch (callbackError) {
-          console.warn(
-            "⚠️ Parent callback failed, but campaign request was submitted successfully"
-          );
+      // Call the parent callback for campaign creation
+      if (onCreateCampaign) {
+        const result = await onCreateCampaign(campaignData);
+
+        if (result.success) {
+          console.log("✅ Campaign created successfully:", result.campaignId);
+          setTxHash(result.campaignId || "campaign_created");
+          setCreationStep("success");
+        } else {
+          throw new Error(result.error || "Failed to create campaign");
         }
-
-        // Reset form and close modal after showing success
-        setTimeout(() => {
-          resetForm();
-          onClose();
-        }, 5000); // Longer delay for partnership message
       } else {
-        throw new Error(result.message);
+        throw new Error("Campaign creation callback not available");
       }
+
+      // Reset form and close modal after showing success
+      setTimeout(() => {
+        resetForm();
+        onClose();
+      }, 2000);
     } catch (error: any) {
       console.error("❌ Campaign creation failed:", error);
 
@@ -299,8 +287,12 @@ export function CreateCampaignModal({
     setFormData({
       name: "",
       description: "",
+      type: "",
+      difficulty: "",
+      location: "",
       startDate: "",
       endDate: "",
+      maxParticipants: "",
       prizePoolLSK: "",
       selectedMountains: [],
     });
@@ -338,7 +330,8 @@ export function CreateCampaignModal({
             <Alert className="bg-green-50 border-green-200">
               <Wallet className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800 font-medium">
-                ✅ Wallet connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+                ✅ Wallet connected: {address?.slice(0, 6)}...
+                {address?.slice(-4)}
               </AlertDescription>
             </Alert>
           )}
@@ -390,7 +383,9 @@ export function CreateCampaignModal({
                 🎉 Campaign request submitted successfully!
                 <br />
                 Request ID:{" "}
-                <code className="text-xs bg-green-100 px-1 rounded">{txHash.slice(0, 20)}...</code>
+                <code className="text-xs bg-green-100 px-1 rounded">
+                  {txHash.slice(0, 20)}...
+                </code>
                 <br />
                 Our partnership team will review and create your campaign within
                 24 hours.
@@ -401,15 +396,14 @@ export function CreateCampaignModal({
           )}
 
           {/* Error Messages */}
-          {(errors.wallet || errors.submit || errors.contract) &&
-            creationStep === "error" && (
-              <Alert className="bg-red-50 border-red-200">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  {errors.wallet || errors.submit || errors.contract}
-                </AlertDescription>
-              </Alert>
-            )}
+          {(errors.submit || errors.form) && creationStep === "error" && (
+            <Alert className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {errors.submit || errors.form}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Basic Information */}
           <div className="space-y-4">
@@ -430,7 +424,10 @@ export function CreateCampaignModal({
             </div>
 
             <div>
-              <Label htmlFor="description" className="text-gray-700 font-medium">
+              <Label
+                htmlFor="description"
+                className="text-gray-700 font-medium"
+              >
                 Description
               </Label>
               <Textarea
@@ -447,6 +444,107 @@ export function CreateCampaignModal({
                   {errors.description}
                 </p>
               )}
+            </div>
+
+            {/* Campaign Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="type" className="text-gray-700 font-medium">
+                  Campaign Type *
+                </Label>
+                <Select
+                  value={formData.type || ""}
+                  onValueChange={(value) => handleInputChange("type", value)}
+                >
+                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 focus:border-green-500 focus:ring-green-500">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="summit">Mountain Summit</SelectItem>
+                    <SelectItem value="training">Training Hike</SelectItem>
+                    <SelectItem value="cleanup">Trail Cleanup</SelectItem>
+                    <SelectItem value="expedition">
+                      Multi-day Expedition
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.type && (
+                  <p className="text-red-600 text-sm mt-1">{errors.type}</p>
+                )}
+              </div>
+
+              <div>
+                <Label
+                  htmlFor="difficulty"
+                  className="text-gray-700 font-medium"
+                >
+                  Difficulty *
+                </Label>
+                <Select
+                  value={formData.difficulty || ""}
+                  onValueChange={(value) =>
+                    handleInputChange("difficulty", value)
+                  }
+                >
+                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 focus:border-green-500 focus:ring-green-500">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                    <SelectItem value="expert">Expert</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.difficulty && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {errors.difficulty}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="location" className="text-gray-700 font-medium">
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  value={formData.location || ""}
+                  onChange={(e) =>
+                    handleInputChange("location", e.target.value)
+                  }
+                  placeholder="e.g., Mendoza Province"
+                  className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <Label
+                  htmlFor="maxParticipants"
+                  className="text-gray-700 font-medium"
+                >
+                  Max Participants *
+                </Label>
+                <Input
+                  id="maxParticipants"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={formData.maxParticipants || ""}
+                  onChange={(e) =>
+                    handleInputChange("maxParticipants", e.target.value)
+                  }
+                  placeholder="25"
+                  className="bg-gray-50 border-gray-300 text-gray-900 focus:border-green-500 focus:ring-green-500"
+                />
+                {errors.maxParticipants && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {errors.maxParticipants}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -568,12 +666,7 @@ export function CreateCampaignModal({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={
-                isLoading ||
-                !isConnected ||
-                !contractHealthy ||
-                creationStep === "success"
-              }
+              disabled={isLoading || creationStep === "success"}
               className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white disabled:opacity-50"
             >
               {creationStep === "validating" && (
@@ -589,13 +682,9 @@ export function CreateCampaignModal({
               {creationStep === "validating"
                 ? "Validating..."
                 : creationStep === "creating"
-                ? "Creating on Blockchain..."
+                ? "Creating Local Campaign..."
                 : creationStep === "success"
                 ? "Campaign Created!"
-                : !isConnected
-                ? "Connect Wallet First"
-                : !contractHealthy
-                ? "Contract Unavailable"
                 : "Create Campaign"}
             </Button>
           </div>

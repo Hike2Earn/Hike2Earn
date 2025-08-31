@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { MountainBackground } from "@/components/mountain-background";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,28 +57,34 @@ interface Campaign {
 interface CreateCampaignData {
   name: string;
   description: string;
+  type?: string;
+  difficulty?: string;
+  location?: string;
+  maxParticipants?: string;
   startDate: number;
   endDate: number;
   prizePoolLSK: number;
   mountainIds?: number[];
+  erc20Tokens?: string[];
+  erc20Amounts?: number[];
 }
 
 const allCampaigns: Campaign[] = [
   {
     id: "1",
-    title: "Aconcagua Summit Expedition",
+    title: "Aconcagua Trail Cleanup",
     description:
-      "Join us for an epic 14-day expedition to reach the highest peak in the Americas at 6,962m.",
-    type: "summit",
-    difficulty: "expert",
+      "Help preserve the beautiful Aconcagua trails while enjoying nature and earning rewards. Join our cleanup initiative to maintain the pristine condition of one of the world's most iconic mountaineering routes.",
+    type: "cleanup",
+    difficulty: "intermediate",
     mountain: "Aconcagua",
     location: "Mendoza, Argentina",
     startDate: "2025-12-15",
     endDate: "2025-12-29",
-    duration: "14 days",
-    participants: 8,
-    maxParticipants: 12,
-    reward: 2500,
+    duration: "3 days",
+    participants: 12,
+    maxParticipants: 25,
+    reward: 1000,
     image: "/cerros/cerroAconcagua.jpg",
     elevation: "6,962m",
   },
@@ -235,8 +241,20 @@ function CampaignsPageContent() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [userCampaigns, setUserCampaigns] = useState<Campaign[]>([]);
   const [contractCampaigns, setContractCampaigns] = useState<Campaign[]>([]);
+  const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>([]);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [diagnostics, setDiagnostics] = useState<{
+    contractAvailable: boolean;
+    contractHealthy: boolean;
+    address: string | null;
+    networkInfo: any;
+    contractCode: string | null;
+    campaignCount: number;
+    contractOwner: string | null;
+    campaignDetails: any[];
+    errors: string[];
+  } | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const { address, isConnected } = useWallet();
   const { hasReservation, storageManager } = useAutoMint();
@@ -245,6 +263,8 @@ function CampaignsPageContent() {
     isLoading: contractLoading,
     error: contractError,
     contractHealthy,
+    diagnoseContractState,
+    createTestCampaign,
   } = useHike2Earn();
   const { chainId, needsSwitch, isSupported } = useNetworkStatus();
 
@@ -281,7 +301,90 @@ function CampaignsPageContent() {
     );
   };
 
+  // Function to run contract diagnostics
+  const runContractDiagnostics = async () => {
+    console.log("🔬 Running contract diagnostics...");
+    try {
+      const diagResult = await diagnoseContractState();
+      setDiagnostics(diagResult);
+      setShowDiagnostics(true);
+      console.log("🔬 Diagnostics completed:", diagResult);
+    } catch (error) {
+      console.error("❌ Failed to run diagnostics:", error);
+    }
+  };
+
+  // Function to create a test campaign
+  const handleCreateTestCampaign = async () => {
+    console.log("🧪 Creating test campaign...");
+    try {
+      const result = await createTestCampaign();
+      if (result.success) {
+        console.log(
+          "✅ Test campaign created successfully:",
+          result.campaignId
+        );
+        // Reload campaigns after creating the test campaign
+        setTimeout(async () => {
+          console.log("🔄 Reloading campaigns after test creation...");
+          await loadContractCampaigns();
+          // Also refresh diagnostics to show the new campaign
+          setTimeout(() => runContractDiagnostics(), 1000);
+        }, 3000); // Wait longer for transaction to be mined
+      } else {
+        console.error("❌ Failed to create test campaign:", result.error);
+        // Show user-friendly error message
+        if (
+          result.error?.includes("evmAsk.js") ||
+          result.error?.includes("Unexpected error")
+        ) {
+          alert(
+            "Wallet conflict detected. Please:\n\n1. Close other wallet extensions (like Phantom)\n2. Refresh the page\n3. Make sure only MetaMask is enabled\n4. Try again"
+          );
+        } else {
+          alert(`Failed to create test campaign: ${result.error}`);
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error creating test campaign:", error);
+      const errorMessage = error.message || "Unknown error occurred";
+
+      if (
+        errorMessage.includes("evmAsk.js") ||
+        errorMessage.includes("Unexpected error")
+      ) {
+        alert(
+          "Wallet conflict detected. Please:\n\n1. Close other wallet extensions (like Phantom)\n2. Refresh the page\n3. Make sure only MetaMask is enabled\n4. Try again"
+        );
+      } else {
+        alert(`Error creating test campaign: ${errorMessage}`);
+      }
+    }
+  };
+
   // Memoize the campaign loading function to avoid dependency issues
+  // Load local campaigns from localStorage
+  const loadLocalCampaigns = useCallback(() => {
+    try {
+      console.log("📦 Loading local campaigns from localStorage...");
+      const storedCampaigns = localStorage.getItem("localCampaigns");
+      console.log("📦 Raw localStorage data:", storedCampaigns);
+
+      if (storedCampaigns) {
+        const localCampaigns = JSON.parse(storedCampaigns);
+        console.log("📦 Parsed local campaigns:", localCampaigns.length);
+        console.log("📦 Local campaigns details:", localCampaigns);
+        setLocalCampaigns(localCampaigns);
+      } else {
+        console.log("📦 No local campaigns found in localStorage");
+        setLocalCampaigns([]);
+      }
+    } catch (error) {
+      console.error("❌ Failed to load local campaigns:", error);
+      setLocalCampaigns([]);
+    }
+  }, []);
+
   const loadContractCampaigns = useCallback(async () => {
     // Prevent concurrent loading
     if (isLoadingCampaigns) {
@@ -321,7 +424,9 @@ function CampaignsPageContent() {
         }
 
         if (campaigns.length === 0) {
-          console.log("ℹ️ No campaigns found in contract");
+          console.log(
+            "ℹ️ No campaigns found in contract (this is normal if no campaigns have been created yet)"
+          );
           setContractCampaigns([]);
           return;
         }
@@ -417,44 +522,15 @@ function CampaignsPageContent() {
             error.message.includes("selectExtension")
           ) {
             console.warn(
-              "⚠️ Phantom wallet conflict detected, attempting resolution..."
+              "⚠️ Wallet conflict detected - please refresh page and try again"
             );
-            handleWalletError(error);
-
-            // Try to handle evmAsk error specifically
-            try {
-              const resolvedProvider = await handleEvmAskError(error);
-              if (resolvedProvider) {
-                console.log(
-                  "✅ Provider conflict resolved, retrying campaign load..."
-                );
-                setTimeout(() => loadContractCampaigns(), 1500);
-              } else if (retryCount < 2) {
-                // Fallback: try conflict resolution
-                const resolved = await resolveConflicts();
-                if (resolved) {
-                  setTimeout(() => loadContractCampaigns(), 2000);
-                } else if (retryCount < 2) {
-                  setTimeout(() => {
-                    setRetryCount((prev) => prev + 1);
-                    loadContractCampaigns();
-                  }, 3000 * (retryCount + 1));
-                }
-              }
-            } catch (resolveError) {
-              console.error(
-                "❌ Failed to resolve wallet conflict:",
-                resolveError
-              );
-            }
           } else if (error.message.includes("user rejected")) {
             console.warn("⚠️ User rejected wallet connection");
           } else {
-            handleError(error);
+            console.error("❌ Error loading campaigns:", error.message);
           }
         } else {
           console.error("❌ Unknown error type:", error);
-          handleError(new Error("Failed to load blockchain campaigns"));
         }
       } finally {
         setIsLoadingCampaigns(false);
@@ -464,30 +540,54 @@ function CampaignsPageContent() {
       // Clear campaigns if not connected or network wrong
       setContractCampaigns([]);
     }
-  }, [
-    isConnected,
-    contractHealthy,
-    isSupported,
-    needsSwitch,
-    chainId,
-    getAllCampaigns,
-    handleError,
-    isLoadingCampaigns,
-    contractError,
-    retryCount,
-  ]);
+  }, []); // Remove all dependencies to prevent infinite loops
 
-  // Load campaigns from contract with proper dependency management
+  // Load campaigns from contract when conditions change
   useEffect(() => {
-    loadContractCampaigns();
-  }, [loadContractCampaigns]); // Now using the memoized function
+    if (isConnected && contractHealthy && isSupported && !needsSwitch) {
+      loadContractCampaigns();
+    } else {
+      setContractCampaigns([]);
+    }
+  }, [isConnected, contractHealthy, isSupported, needsSwitch, chainId]); // Only depend on connection state
 
-  // Combine all available campaigns
-  const allAvailableCampaigns = [
-    ...allCampaigns,
-    ...userCampaigns,
-    ...contractCampaigns,
-  ];
+  // Load local campaigns on component mount
+  useEffect(() => {
+    loadLocalCampaigns();
+  }, [loadLocalCampaigns]);
+
+  // Combine all available campaigns with safety checks
+  const allAvailableCampaigns = useMemo(() => {
+    const combined = [
+      ...allCampaigns,
+      ...userCampaigns,
+      ...contractCampaigns,
+      ...localCampaigns,
+    ].filter((campaign) => {
+      // Safety check: ensure campaign has required properties
+      if (!campaign || typeof campaign !== "object") {
+        console.warn("🚨 Invalid campaign object:", campaign);
+        return false;
+      }
+
+      if (!campaign.id || !campaign.title || !campaign.description) {
+        console.warn("🚨 Campaign missing required properties:", campaign);
+        return false;
+      }
+
+      return true;
+    });
+
+    console.log("📊 Combined campaigns count:", combined.length);
+    console.log("📊 Campaigns breakdown:", {
+      allCampaigns: allCampaigns.length,
+      userCampaigns: userCampaigns.length,
+      contractCampaigns: contractCampaigns.length,
+      localCampaigns: localCampaigns.length,
+    });
+
+    return combined;
+  }, [allCampaigns, userCampaigns, contractCampaigns, localCampaigns]);
 
   const filteredCampaigns = allAvailableCampaigns.filter((campaign) => {
     const matchesSearch =
@@ -533,13 +633,23 @@ function CampaignsPageContent() {
         id: `user-${result.campaignId || Date.now()}`,
         title: campaignData.name,
         description: campaignData.description,
-        type: "summit", // Default type, could be derived from data
-        difficulty: "intermediate", // Default difficulty, could be derived from mountain selection
+        type:
+          (campaignData.type as
+            | "summit"
+            | "cleanup"
+            | "training"
+            | "expedition") ?? "summit",
+        difficulty:
+          (campaignData.difficulty as
+            | "beginner"
+            | "intermediate"
+            | "advanced"
+            | "expert") ?? "intermediate",
         mountain:
           (campaignData.mountainIds?.length || 0) > 0
             ? "Multiple Mountains"
             : "Custom Route",
-        location: "User Created",
+        location: campaignData.location ?? "User Created",
         startDate: new Date(campaignData.startDate * 1000)
           .toISOString()
           .split("T")[0],
@@ -551,16 +661,21 @@ function CampaignsPageContent() {
             (campaignData.endDate - campaignData.startDate) / (24 * 60 * 60)
           ) + " days",
         participants: 0,
-        maxParticipants: 20, // Default max participants
+        maxParticipants: campaignData.maxParticipants
+          ? parseInt(campaignData.maxParticipants)
+          : 20,
         reward: Math.floor(campaignData.prizePoolLSK * 1000), // Convert LSK to HIKE tokens (simplified)
-        image: "/campaigns/user-created.jpg",
+        image: "/cerros/cerroAconcagua.jpg",
         elevation: "Variable",
       };
 
       setUserCampaigns((prev) => [newCampaign, ...prev]);
 
-      // Reload contract campaigns to show the new one
-      setTimeout(() => loadContractCampaigns(), 2000);
+      // Reload contract campaigns and local campaigns to show the new one
+      setTimeout(() => {
+        loadContractCampaigns();
+        loadLocalCampaigns();
+      }, 2000);
 
       return { success: true, campaignId: result.campaignId };
     } catch (error) {
@@ -641,6 +756,33 @@ function CampaignsPageContent() {
                 </div>
               )}
 
+            {/* Contract Healthy - Show Diagnostics Button */}
+            {isConnected && contractHealthy && isSupported && !needsSwitch && (
+              <div className="mt-3 p-2.5 bg-green-500/5 border border-green-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0" />
+                    <div>
+                      <span className="text-xs font-medium text-green-400">
+                        ✅ Contract Connected
+                      </span>
+                      <p className="text-xs text-muted-foreground/80 mt-0.5">
+                        Smart contract is healthy and ready
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={runContractDiagnostics}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-6 px-2"
+                  >
+                    🔬 Debug
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Contract Error */}
             {isConnected && !contractHealthy && (
               <div className="mt-3 p-2.5 bg-red-500/5 border border-red-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
@@ -657,6 +799,14 @@ function CampaignsPageContent() {
                     <p className="text-xs text-muted-foreground/80 mt-1">
                       Showing {allCampaigns.length} featured campaigns
                     </p>
+                    <Button
+                      onClick={runContractDiagnostics}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-6 px-2 mt-2"
+                    >
+                      🔬 Run Diagnostics
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -763,148 +913,345 @@ function CampaignsPageContent() {
           {/* Campaigns Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCampaigns.map((campaign) => {
-              const isReserved = hasUserReservation(campaign.id);
-              const isCompleted = hasCompletedCampaign(campaign.id);
+              try {
+                const isReserved = hasUserReservation(campaign.id);
+                const isCompleted = hasCompletedCampaign(campaign.id);
 
-              return (
-                <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
-                  <div
-                    className={`backdrop-blur-md bg-white/10 border border-white/20 rounded-xl overflow-hidden hover:bg-white/15 transition-all duration-300 group cursor-pointer relative ${
-                      isCompleted
-                        ? "bg-green-500/10 border-green-500/30"
-                        : isReserved
-                        ? "bg-primary/10 border-primary/30"
-                        : ""
-                    }`}
-                  >
-                    {/* Campaign Image */}
-                    <div className="relative h-48 overflow-hidden">
-                      <Image
-                        src={campaign.image}
-                        alt={campaign.title}
-                        fill
-                        className="object-cover"
-                        onError={(e) => {
-                          console.error(
-                            `❌ Failed to load campaign image: ${campaign.image}`
-                          );
-                          // Fallback to gradient if image fails to load
-                          e.currentTarget.style.display = "none";
-                        }}
-                        onLoad={() => {
-                          console.log(
-                            `✅ Successfully loaded campaign image: ${campaign.image}`
-                          );
-                        }}
-                      />
-                      {/* Fallback gradient if image fails */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/20 opacity-0" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                return (
+                  <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
+                    <div
+                      className={`backdrop-blur-md bg-white/10 border border-white/20 rounded-xl overflow-hidden hover:bg-white/15 transition-all duration-300 group cursor-pointer relative ${
+                        isCompleted
+                          ? "bg-green-500/10 border-green-500/30"
+                          : isReserved
+                          ? "bg-primary/10 border-primary/30"
+                          : ""
+                      }`}
+                    >
+                      {/* Campaign Image */}
+                      <div className="relative h-48 overflow-hidden">
+                        <Image
+                          src={campaign.image}
+                          alt={campaign.title}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            console.error(
+                              `❌ Failed to load campaign image: ${campaign.image}`
+                            );
+                            // Fallback to gradient if image fails to load
+                            e.currentTarget.style.display = "none";
+                          }}
+                          onLoad={() => {
+                            console.log(
+                              `✅ Successfully loaded campaign image: ${campaign.image}`
+                            );
+                          }}
+                        />
+                        {/* Fallback gradient if image fails */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/20 opacity-0" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                      {/* Status Badge - Top Priority */}
-                      {isCompleted && (
-                        <div className="absolute top-3 right-3">
-                          <Badge className="bg-green-500/80 text-white border-green-400/50 backdrop-blur-sm">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Completado
-                          </Badge>
+                        {/* Status Badge - Top Priority */}
+                        {isCompleted && (
+                          <div className="absolute top-3 right-3">
+                            <Badge className="bg-green-500/80 text-white border-green-400/50 backdrop-blur-sm">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Completado
+                            </Badge>
+                          </div>
+                        )}
+
+                        {!isCompleted && isReserved && (
+                          <div className="absolute top-3 right-3">
+                            <Badge className="bg-primary/80 text-white border-primary/50 backdrop-blur-sm">
+                              <Star className="w-3 h-3 mr-1" />
+                              Reservado
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Mountain info overlay */}
+                        <div className="absolute bottom-3 left-3 text-white">
+                          <h4 className="font-semibold">{campaign.mountain}</h4>
+                          <p className="text-sm opacity-90">
+                            {campaign.elevation}
+                          </p>
                         </div>
-                      )}
+                      </div>
 
-                      {!isCompleted && isReserved && (
-                        <div className="absolute top-3 right-3">
-                          <Badge className="bg-primary/80 text-white border-primary/50 backdrop-blur-sm">
-                            <Star className="w-3 h-3 mr-1" />
-                            Reservado
-                          </Badge>
-                        </div>
-                      )}
-
-                      {/* Mountain info overlay */}
-                      <div className="absolute bottom-3 left-3 text-white">
-                        <h4 className="font-semibold">{campaign.mountain}</h4>
-                        <p className="text-sm opacity-90">
-                          {campaign.elevation}
+                      {/* Campaign Content */}
+                      <div className="p-6">
+                        <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+                          {campaign.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                          {campaign.description}
                         </p>
-                      </div>
-                    </div>
 
-                    {/* Campaign Content */}
-                    <div className="p-6">
-                      <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                        {campaign.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                        {campaign.description}
-                      </p>
+                        {/* Campaign Info Grid */}
+                        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <MapPin className="w-4 h-4" />
+                            <span className="truncate">
+                              {campaign.location}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="w-4 h-4" />
+                            <span>{campaign.duration}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Users className="w-4 h-4" />
+                            <span>
+                              {campaign.participants}/{campaign.maxParticipants}{" "}
+                              joined
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-secondary">
+                            <Trophy className="w-4 h-4" />
+                            <span className="font-semibold">
+                              {campaign.reward} HIKE
+                            </span>
+                          </div>
+                        </div>
 
-                      {/* Campaign Info Grid */}
-                      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="w-4 h-4" />
-                          <span className="truncate">{campaign.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>{campaign.duration}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Users className="w-4 h-4" />
+                        {/* Date */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                          <Calendar className="w-4 h-4" />
                           <span>
-                            {campaign.participants}/{campaign.maxParticipants}{" "}
-                            joined
+                            {new Date(campaign.startDate).toLocaleDateString()}
+                            {campaign.startDate !== campaign.endDate &&
+                              ` - ${new Date(
+                                campaign.endDate
+                              ).toLocaleDateString()}`}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-secondary">
-                          <Trophy className="w-4 h-4" />
-                          <span className="font-semibold">
-                            {campaign.reward} HIKE
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                        <Calendar className="w-4 h-4" />
-                        <span>
-                          {new Date(campaign.startDate).toLocaleDateString()}
-                          {campaign.startDate !== campaign.endDate &&
-                            ` - ${new Date(
-                              campaign.endDate
-                            ).toLocaleDateString()}`}
-                        </span>
-                      </div>
-
-                      {/* Participants Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Spots Available
-                          </span>
-                          <span className="font-semibold">
-                            {campaign.maxParticipants - campaign.participants}{" "}
-                            remaining
-                          </span>
-                        </div>
-                        <div className="w-full bg-muted/30 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
-                            style={{
-                              width: `${
-                                (campaign.participants /
-                                  campaign.maxParticipants) *
-                                100
-                              }%`,
-                            }}
-                          />
+                        {/* Participants Progress */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Spots Available
+                            </span>
+                            <span className="font-semibold">
+                              {campaign.maxParticipants - campaign.participants}{" "}
+                              remaining
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted/30 rounded-full h-2">
+                            <div
+                              className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
+                              style={{
+                                width: `${
+                                  (campaign.participants /
+                                    campaign.maxParticipants) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </Link>
+                );
+              } catch (renderError) {
+                console.error(
+                  "🚨 Error rendering campaign:",
+                  campaign.id,
+                  renderError
+                );
+                return (
+                  <div
+                    key={campaign.id}
+                    className="backdrop-blur-md bg-red-500/10 border border-red-500/20 rounded-xl p-4"
+                  >
+                    <p className="text-red-400 text-sm font-semibold">
+                      Error loading campaign
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                      {campaign.title || "Unknown campaign"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      ID: {campaign.id}
+                    </p>
                   </div>
-                </Link>
-              );
+                );
+              }
             })}
           </div>
+
+          {/* Contract Diagnostics Panel */}
+          {showDiagnostics && diagnostics && (
+            <div className="mt-6 p-4 bg-muted/30 border border-muted rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold">
+                  🔬 Contract Diagnostics
+                </h3>
+                <Button
+                  onClick={() => setShowDiagnostics(false)}
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs h-6 px-2"
+                >
+                  ✕
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <strong>Contract Available:</strong>{" "}
+                  <span
+                    className={
+                      diagnostics.contractAvailable
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {diagnostics.contractAvailable ? "✅ Yes" : "❌ No"}
+                  </span>
+                </div>
+                <div>
+                  <strong>Contract Healthy:</strong>{" "}
+                  <span
+                    className={
+                      diagnostics.contractHealthy
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {diagnostics.contractHealthy ? "✅ Yes" : "❌ No"}
+                  </span>
+                </div>
+                <div>
+                  <strong>Network:</strong>{" "}
+                  {diagnostics.networkInfo
+                    ? `${diagnostics.networkInfo.name} (${diagnostics.networkInfo.chainId})`
+                    : "Unknown"}
+                </div>
+                <div>
+                  <strong>Campaign Count:</strong>{" "}
+                  <span
+                    className={
+                      diagnostics.campaignCount > 0
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }
+                  >
+                    {diagnostics.campaignCount}
+                  </span>
+                </div>
+                <div>
+                  <strong>Contract Owner:</strong>{" "}
+                  <span className="font-mono text-xs">
+                    {diagnostics.contractOwner
+                      ? `${diagnostics.contractOwner.slice(
+                          0,
+                          6
+                        )}...${diagnostics.contractOwner.slice(-4)}`
+                      : "Unknown"}
+                  </span>
+                </div>
+                <div>
+                  <strong>Contract Code:</strong>{" "}
+                  <span
+                    className={
+                      diagnostics.contractCode &&
+                      diagnostics.contractCode !== "0x"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {diagnostics.contractCode &&
+                    diagnostics.contractCode !== "0x"
+                      ? "✅ Present"
+                      : "❌ Missing"}
+                  </span>
+                </div>
+              </div>
+
+              {diagnostics.errors && diagnostics.errors.length > 0 && (
+                <div className="mt-3">
+                  <strong className="text-red-600">Errors:</strong>
+                  <ul className="mt-1 list-disc list-inside text-xs text-red-600">
+                    {diagnostics.errors.map((error: string, index: number) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Campaign Details */}
+              {diagnostics.campaignDetails &&
+                diagnostics.campaignDetails.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold mb-2">
+                      📋 Campaign Details:
+                    </h4>
+                    <div className="space-y-2">
+                      {diagnostics.campaignDetails.map((campaign, index) => (
+                        <div
+                          key={index}
+                          className="bg-muted/50 p-2 rounded text-xs"
+                        >
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <strong>ID:</strong> {campaign.id}
+                            </div>
+                            <div>
+                              <strong>Name:</strong> {campaign.name}
+                            </div>
+                            <div>
+                              <strong>Active:</strong>{" "}
+                              {campaign.isActive ? "✅ Yes" : "❌ No"}
+                            </div>
+                            <div>
+                              <strong>Prize Pool:</strong>{" "}
+                              {campaign.prizePoolETH} ETH
+                            </div>
+                            <div>
+                              <strong>Participants:</strong>{" "}
+                              {campaign.participantCount}
+                            </div>
+                            <div>
+                              <strong>Start:</strong>{" "}
+                              {new Date(
+                                campaign.startDate * 1000
+                              ).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              <div className="mt-3 pt-3 border-t border-muted">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {diagnostics.campaignCount === 0
+                      ? "No campaigns found in the contract. This is normal if no campaigns have been created yet."
+                      : `Found ${diagnostics.campaignCount} campaigns in the contract. If they're not showing, there might be an issue with the data transformation.`}
+                  </p>
+                  {isConnected &&
+                    contractHealthy &&
+                    isSupported &&
+                    !needsSwitch && (
+                      <Button
+                        onClick={handleCreateTestCampaign}
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7 px-2 ml-2"
+                        disabled={contractLoading}
+                      >
+                        🧪 Create Test
+                      </Button>
+                    )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* No Results */}
           {filteredCampaigns.length === 0 && (
@@ -915,6 +1262,14 @@ function CampaignsPageContent() {
                 Try adjusting your filters or search terms to find more
                 campaigns.
               </p>
+              {isConnected &&
+                contractHealthy &&
+                contractCampaigns.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    No campaigns are stored in the smart contract yet. Try
+                    running diagnostics to check the contract state.
+                  </p>
+                )}
             </div>
           )}
         </main>
