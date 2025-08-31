@@ -56,7 +56,7 @@ export function NFTGallery() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-lg font-semibold">
             <Award className="w-5 h-5 text-secondary" />
-            NFT Achievements
+            Achievement Medals
           </div>
           <Badge variant="outline" className="text-xs">
             {nftBadges.length} Owned
@@ -95,13 +95,13 @@ export function NFTGallery() {
                 <div className="text-xs text-muted-foreground capitalize">{nft.rarity}</div>
               </div>
 
-              {/* NFT Details Modal */}
+              {/* Medal Details Modal */}
               {selectedNFT === nft.id && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl max-w-md w-full animate-in fade-in-0 zoom-in-95 duration-200">
+                  <div className="bg-white border border-gray-200 rounded-xl max-w-md w-full animate-in fade-in-0 zoom-in-95 duration-200 shadow-2xl">
                     <div className="p-6">
                       <div className="space-y-4">
-                        <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10">
+                        <div className="aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-green-50 to-emerald-100">
                           <img
                             src={nft.image || "/placeholder.svg"}
                             alt={nft.name}
@@ -111,7 +111,7 @@ export function NFTGallery() {
 
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-bold">{nft.name}</h3>
+                            <h3 className="text-lg font-bold text-gray-900">{nft.name}</h3>
                             <Badge
                               variant="outline"
                               className={`text-xs ${rarityColors[nft.rarity as keyof typeof rarityColors]} text-white border-0 capitalize`}
@@ -119,8 +119,46 @@ export function NFTGallery() {
                               {nft.rarity}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-3">{nft.description}</p>
-                          <div className="text-xs text-muted-foreground">
+                          <p className="text-sm text-gray-600 mb-3">{nft.description}</p>
+                          
+                          {/* Medal Statistics */}
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Mountain</div>
+                              <div className="text-sm font-semibold text-gray-900">Mount Whitney</div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Altitude</div>
+                              <div className="text-sm font-semibold text-gray-900">4,421m</div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Duration</div>
+                              <div className="text-sm font-semibold text-gray-900">8h 15m</div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Value</div>
+                              <div className="text-sm font-semibold text-yellow-600">150 HIKE</div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-3 rounded-lg mb-3">
+                            <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Difficulty</div>
+                            <div className="flex items-center">
+                              <div className="flex space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <div
+                                    key={star}
+                                    className={`w-3 h-3 rounded-full ${
+                                      star <= 5 ? 'bg-yellow-400' : 'bg-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="ml-2 text-sm font-semibold text-gray-900">5/5</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-gray-500">
                             Earned on {new Date(nft.earnedAt).toLocaleDateString()}
                           </div>
                         </div>
@@ -128,12 +166,12 @@ export function NFTGallery() {
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
-                            className="flex-1 glass bg-transparent"
+                            className="flex-1 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
                             onClick={() => setSelectedNFT(null)}
                           >
                             Close
                           </Button>
-                          <Button className="flex-1 bg-gradient-to-r from-primary to-secondary">Share</Button>
+                          <Button className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700">Share Medal</Button>
                         </div>
                       </div>
                     </div>

@@ -125,11 +125,22 @@ export interface NetworkValidation {
 }
 
 export function validateNetwork(currentChainId: number): NetworkValidation {
-  const currentNetwork = getNetworkByChainId(currentChainId);
+  // Ensure chainId is a number for proper comparison
+  const normalizedChainId = Number(currentChainId);
+  const currentNetwork = getNetworkByChainId(normalizedChainId);
   const targetNetwork = PRIMARY_NETWORK;
-  const isSupported = isNetworkSupported(currentChainId);
+  const isSupported = isNetworkSupported(normalizedChainId);
 
-  const needsSwitch = currentChainId !== targetNetwork.chainId;
+  const needsSwitch = normalizedChainId !== Number(targetNetwork.chainId);
+
+  console.log(`🔍 validateNetwork debug:`, {
+    input: currentChainId,
+    normalized: normalizedChainId,
+    target: targetNetwork.chainId,
+    targetNormalized: Number(targetNetwork.chainId),
+    needsSwitch,
+    isSupported
+  });
 
   return {
     isSupported,

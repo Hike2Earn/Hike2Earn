@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mountain, Calendar, Users, Trophy, ArrowRight, MapPin, Clock } from "lucide-react"
+import { Mountain, Calendar, Users, Trophy, ArrowRight, MapPin, Clock, CheckCircle, Star } from "lucide-react"
+import { useWallet } from "@/components/wallet-provider"
+import { useAutoMint } from "@/hooks/useAutoMint"
 import Link from "next/link"
 
 interface Campaign {
@@ -109,6 +111,25 @@ const difficultyColors = {
 }
 
 export function CampaignsWidget() {
+  const { address, isConnected } = useWallet()
+  const { hasReservation, storageManager } = useAutoMint()
+
+  // Helper function to check if user has reservation for a campaign
+  const hasUserReservation = (campaignId: string): boolean => {
+    if (!isConnected || !address) return false
+    return hasReservation(campaignId)
+  }
+
+  // Helper function to check if user has completed this campaign (has NFT)
+  const hasCompletedCampaign = (campaignId: string): boolean => {
+    if (!isConnected || !address) return false
+    
+    const reservations = storageManager.getReservations(address)
+    const campaignReservation = reservations.find(r => r.campaignId === campaignId)
+    
+    return campaignReservation?.status === 'completed' && Boolean(campaignReservation.nftTokenId)
+  }
+
   return (
     <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl">
       <div className="p-6 pb-4">
@@ -128,31 +149,60 @@ export function CampaignsWidget() {
 
       <div className="px-6 pb-6">
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-          {mockCampaigns.map((campaign) => (
-            <div key={campaign.id} className="min-w-[300px] group">
-              <Link href={`/campaigns/${campaign.id}`}>
-                <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all duration-300 cursor-pointer">
-                  {/* Campaign Image */}
-                  <div className="relative h-32 rounded-md overflow-hidden mb-3">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/30 to-secondary/20" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    
-                    {/* Badges */}
-                    <div className="absolute top-2 left-2 flex gap-1">
-                      <Badge className={`text-xs ${typeColors[campaign.type]}`}>
-                        {campaign.type.charAt(0).toUpperCase() + campaign.type.slice(1)}
-                      </Badge>
-                      <Badge className={`text-xs ${difficultyColors[campaign.difficulty]}`}>
-                        {campaign.difficulty.charAt(0).toUpperCase() + campaign.difficulty.slice(1)}
-                      </Badge>
+          {mockCampaigns.map((campaign) => {
+            const isReserved = hasUserReservation(campaign.id)
+            const isCompleted = hasCompletedCampaign(campaign.id)
+            
+            return (
+              <div key={campaign.id} className="min-w-[300px] group">
+                <Link href={`/campaigns/${campaign.id}`}>
+                  <div className={`backdrop-blur-sm border rounded-lg p-4 hover:bg-white/10 transition-all duration-300 cursor-pointer relative ${
+                    isCompleted 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : isReserved 
+                        ? 'bg-primary/10 border-primary/30' 
+                        : 'bg-white/5 border-white/10'
+                  }`}>
+                    {/* Campaign Image */}
+                    <div className="relative h-32 rounded-md overflow-hidden mb-3">
+                      <div className="w-full h-full bg-gradient-to-br from-primary/30 to-secondary/20" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      
+                      {/* Status Badge - Top Priority */}
+                      {isCompleted && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-green-500/80 text-white border-green-400/50 backdrop-blur-sm">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Completado
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {!isCompleted && isReserved && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-primary/80 text-white border-primary/50 backdrop-blur-sm">
+                            <Star className="w-3 h-3 mr-1" />
+                            Reservado
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {/* Campaign Type Badges */}
+                      <div className="absolute top-2 left-2 flex gap-1">
+                        <Badge className={`text-xs ${typeColors[campaign.type]}`}>
+                          {campaign.type.charAt(0).toUpperCase() + campaign.type.slice(1)}
+                        </Badge>
+                        <Badge className={`text-xs ${difficultyColors[campaign.difficulty]}`}>
+                          {campaign.difficulty.charAt(0).toUpperCase() + campaign.difficulty.slice(1)}
+                        </Badge>
+                      </div>
+                      
+                      {/* Mountain info overlay */}
+                      <div className="absolute bottom-2 left-2 text-white">
+                        <h4 className="font-semibold text-sm">{campaign.mountain}</h4>
+                        <p className="text-xs opacity-90">{campaign.elevation}</p>
+                      </div>
                     </div>
-                    
-                    {/* Mountain info overlay */}
-                    <div className="absolute bottom-2 left-2 text-white">
-                      <h4 className="font-semibold text-sm">{campaign.mountain}</h4>
-                      <p className="text-xs opacity-90">{campaign.elevation}</p>
-                    </div>
-                  </div>
 
                   {/* Campaign Details */}
                   <div className="space-y-3">
@@ -199,7 +249,8 @@ export function CampaignsWidget() {
                 </div>
               </Link>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

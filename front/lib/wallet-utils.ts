@@ -9,6 +9,7 @@ export interface WalletProvider {
   isCoinbaseWallet?: boolean;
   isTrustWallet?: boolean;
   isRabby?: boolean;
+  selectedAddress?: string | null;
   request: (args: { method: string; params?: any[] }) => Promise<any>;
   enable?: () => Promise<string[]>;
   send?: (method: string, params?: any[]) => Promise<any>;
@@ -135,37 +136,294 @@ export function getWalletName(provider: WalletProvider): string {
   return "Unknown Wallet";
 }
 
+// Cache para el provider de MetaMask una vez encontrado
+let cachedMetaMaskProvider: WalletProvider | null = null;
+
 /**
- * Get the best available provider with conflict resolution
+ * Isolate MetaMask provider from multiple wallet extensions - Enhanced version
+ */
+export function isolateMetaMaskProvider(): WalletProvider | null {
+  if (typeof window === "undefined" || !window.ethereum) {
+    console.log("❌ No window.ethereum available");
+    return null;
+  }
+
+  // Usar cache si ya se encontró un provider válido
+  if (cachedMetaMaskProvider) {
+    try {
+      // Validar que el provider cacheado sigue siendo válido
+      if (cachedMetaMaskProvider.request) {
+        console.log("✅ Using cached MetaMask provider");
+        return cachedMetaMaskProvider;
+      }
+    } catch (error) {
+      console.warn("⚠️ Cached provider invalid, searching again...");
+      cachedMetaMaskProvider = null;
+    }
+  }
+
+  try {
+    // Check for multiple providers array
+    if ((window.ethereum as any).providers && Array.isArray((window.ethereum as any).providers)) {
+      const providers = (window.ethereum as any).providers;
+      console.log(`🔍 Found ${providers.length} wallet providers`);
+      
+      // Strategy 1: Find pure MetaMask (not Phantom disguised)
+      const pureMetaMask = providers.find((provider: any) => 
+        provider.isMetaMask && 
+        !provider.isPhantom && 
+        !provider.isCoinbaseWallet &&
+        !provider.isTrustWallet &&
+        !provider.isRabby &&
+        provider._metamask // Additional MetaMask-specific property
+      );
+
+      if (pureMetaMask) {
+        console.log("🎯 Found pure MetaMask provider");
+        cachedMetaMaskProvider = pureMetaMask;
+        return pureMetaMask;
+      }
+
+      // Strategy 2: Find MetaMask by _metamask property (more reliable)
+      const metamaskByProperty = providers.find((provider: any) => 
+        provider._metamask || (provider.isMetaMask && provider.request)
+      );
+
+      if (metamaskByProperty && !metamaskByProperty.isPhantom) {
+        console.log("🎯 Found MetaMask by _metamask property");
+        cachedMetaMaskProvider = metamaskByProperty;
+        return metamaskByProperty;
+      }
+
+      // Strategy 3: Find first working MetaMask-like provider
+      for (const provider of providers) {
+        if (provider.isMetaMask && provider.request && !provider.isPhantom) {
+          console.log("⚠️ Using fallback MetaMask provider (may have conflicts)");
+          cachedMetaMaskProvider = provider;
+          return provider;
+        }
+      }
+    }
+
+    // Single provider case - enhanced validation
+    const singleProvider = window.ethereum;
+    if (singleProvider) {
+      // Check if it's genuine MetaMask
+      const isGenuineMetaMask = (
+        (singleProvider as any).isMetaMask && 
+        !(singleProvider as any).isPhantom &&
+        ((singleProvider as any)._metamask || (singleProvider as any).request)
+      );
+
+      if (isGenuineMetaMask) {
+        console.log("✅ Using single genuine MetaMask provider");
+        cachedMetaMaskProvider = singleProvider;
+        return singleProvider;
+      }
+
+      // Even if not clearly MetaMask, if it has request method and isMetaMask, use it
+      if ((singleProvider as any).isMetaMask && (singleProvider as any).request) {
+        console.log("⚠️ Using single provider that claims to be MetaMask");
+        cachedMetaMaskProvider = singleProvider;
+        return singleProvider;
+      }
+    }
+
+    console.warn("⚠️ Could not isolate MetaMask provider");
+    return null;
+  } catch (error) {
+    console.error("❌ Error isolating MetaMask provider:", error);
+    return null;
+  }
+}
+
+/**
+ * Clear the cached MetaMask provider (useful for testing or when providers change)
+ */
+export function clearMetaMaskCache(): void {
+  cachedMetaMaskProvider = null;
+  console.log("🔄 MetaMask provider cache cleared");
+}
+
+/**
+ * Validate that a provider is working for minting operations
+ */
+export async function validateProviderForMinting(provider: WalletProvider): Promise<boolean> {
+  if (!provider || !provider.request) {
+    return false;
+  }
+
+  try {
+    // Test basic connectivity
+    await provider.request({ method: "eth_accounts" });
+    
+    // Test chain ID access
+    await provider.request({ method: "eth_chainId" });
+    
+    console.log("✅ Provider validation successful");
+    return true;
+  } catch (error: any) {
+    console.warn("❌ Provider validation failed:", error.message);
+    
+    // Clear cache if this was the cached provider
+    if (provider === cachedMetaMaskProvider) {
+      clearMetaMaskCache();
+    }
+    
+    return false;
+  }
+}
+
+/**
+ * Get the best available provider with MetaMask priority
  */
 export function getBestProvider(): WalletProvider | null {
+  console.log("🔍 Getting best provider with MetaMask priority...");
+  
+  if (typeof window === "undefined" || !window.ethereum) {
+    console.log("❌ No ethereum provider available");
+    return null;
+  }
+
+  // ALWAYS try to get MetaMask first, regardless of conflicts
+  console.log("🎯 Attempting to isolate MetaMask provider...");
+  const metamaskProvider = isolateMetaMaskProvider();
+  
+  if (metamaskProvider) {
+    console.log("✅ Using MetaMask as primary provider");
+    return metamaskProvider;
+  }
+
+  // If MetaMask not found, diagnose the environment
   const diagnostic = diagnoseWalletEnvironment();
+  console.log("🔍 MetaMask not found, using diagnostic fallback...");
 
   if (!diagnostic.hasEthereum) {
     return null;
   }
 
+  // Fallback to any available provider, but warn user
   if (diagnostic.preferredProvider) {
-    console.log(
-      "✅ Using preferred provider:",
-      getWalletName(diagnostic.preferredProvider)
+    console.warn(
+      "⚠️ Using non-MetaMask provider:",
+      getWalletName(diagnostic.preferredProvider),
+      "- This may cause issues"
     );
     return diagnostic.preferredProvider;
   }
 
+  console.error("❌ No suitable wallet provider found");
   return null;
 }
 
 /**
- * Attempt connection with fallback methods for different wallet types
+ * Advanced provider testing with fallbacks
+ */
+export async function testProviderConnection(provider: WalletProvider): Promise<{
+  isWorking: boolean;
+  error?: string;
+  accounts?: string[];
+}> {
+  if (!provider) {
+    return { isWorking: false, error: "No provider" };
+  }
+
+  try {
+    // Test 1: Check if accounts are accessible
+    const accounts = await provider.request({
+      method: "eth_accounts",
+    });
+
+    // Test 2: Try to get chain ID
+    const chainId = await provider.request({
+      method: "eth_chainId",
+    });
+
+    console.log("✅ Provider test passed:", {
+      accountsCount: accounts?.length || 0,
+      chainId
+    });
+
+    return {
+      isWorking: true,
+      accounts: accounts || []
+    };
+
+  } catch (error: any) {
+    console.warn("⚠️ Provider test failed:", error.message);
+    
+    // Check for specific error patterns
+    if (error.message.includes("selectExtension") || 
+        error.message.includes("evmAsk.js") ||
+        error.message.includes("Unexpected error")) {
+      return {
+        isWorking: false,
+        error: "phantom_conflict"
+      };
+    }
+
+    return {
+      isWorking: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Check if a wallet provider is connected by checking available accounts
+ */
+export async function isProviderConnected(provider: WalletProvider): Promise<boolean> {
+  if (!provider) return false;
+  
+  try {
+    const accounts = await provider.request({
+      method: "eth_accounts",
+    });
+    return accounts && accounts.length > 0;
+  } catch (error) {
+    console.warn("Failed to check provider connection:", error);
+    // Fallback to selectedAddress if available (for backward compatibility)
+    return !!provider.selectedAddress;
+  }
+}
+
+/**
+ * Attempt connection with enhanced fallback methods and conflict resolution
  */
 export async function connectWithFallback(
   provider: WalletProvider
 ): Promise<string[]> {
-  console.log("🔄 Attempting connection with fallback methods...");
+  console.log("🔄 Attempting connection with enhanced fallback methods...");
 
   const walletName = getWalletName(provider);
   console.log("📱 Connecting to:", walletName);
+
+  // First, test if the provider is working properly
+  const providerTest = await testProviderConnection(provider);
+  
+  if (providerTest.isWorking && providerTest.accounts && providerTest.accounts.length > 0) {
+    console.log("✅ Provider already connected with accounts");
+    return providerTest.accounts;
+  }
+
+  if (providerTest.error === "phantom_conflict") {
+    console.log("🔧 Phantom conflict detected, attempting isolation...");
+    
+    // Try to get isolated MetaMask provider
+    const isolatedProvider = isolateMetaMaskProvider();
+    if (isolatedProvider) {
+      try {
+        console.log("🔄 Trying isolated MetaMask provider...");
+        const accounts = await isolatedProvider.request({
+          method: "eth_requestAccounts",
+        });
+        console.log("✅ Success with isolated MetaMask");
+        return accounts;
+      } catch (isolatedError) {
+        console.warn("❌ Isolated provider failed:", isolatedError);
+      }
+    }
+  }
 
   try {
     // Primary method - eth_requestAccounts
@@ -178,19 +436,37 @@ export async function connectWithFallback(
   } catch (requestError: any) {
     console.warn("❌ eth_requestAccounts failed:", requestError.message);
 
-    // Handle specific errors
+    // Enhanced error handling for evmAsk.js and selectExtension errors
     if (
       requestError.message?.includes("selectExtension") ||
+      requestError.message?.includes("evmAsk.js") ||
       requestError.message?.includes("Unexpected error")
     ) {
-      console.log(
-        "🔄 Detected selectExtension error, trying alternative methods..."
-      );
+      console.log("🔄 Detected wallet extension conflict, trying recovery methods...");
 
-      // Method 2 - enable() for older wallets
+      // Method 2 - Force provider refresh and retry
+      try {
+        console.log("2️⃣ Refreshing provider and retrying...");
+        
+        // Wait a moment for provider to stabilize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const refreshedProvider = getBestProvider();
+        if (refreshedProvider && refreshedProvider !== provider) {
+          const accounts = await refreshedProvider.request({
+            method: "eth_requestAccounts",
+          });
+          console.log("✅ Success with refreshed provider");
+          return accounts;
+        }
+      } catch (refreshError) {
+        console.warn("❌ Provider refresh failed:", refreshError);
+      }
+
+      // Method 3 - enable() for older wallets
       if (provider.enable) {
         try {
-          console.log("2️⃣ Trying enable() method...");
+          console.log("3️⃣ Trying enable() method...");
           const accounts = await provider.enable();
           console.log("✅ Success with enable() method");
           return accounts;
@@ -199,10 +475,10 @@ export async function connectWithFallback(
         }
       }
 
-      // Method 3 - send() method
+      // Method 4 - send() method
       if (provider.send) {
         try {
-          console.log("3️⃣ Trying send() method...");
+          console.log("4️⃣ Trying send() method...");
           const accounts = await provider.send("eth_requestAccounts", []);
           console.log("✅ Success with send() method");
           return accounts;
@@ -211,30 +487,27 @@ export async function connectWithFallback(
         }
       }
 
-      // Method 4 - Direct provider access for Phantom
-      if (provider.isPhantom && window.ethereum && window.ethereum.providers) {
-        console.log("4️⃣ Trying direct Phantom provider access...");
+      // Method 5 - Try accessing MetaMask directly through window object
+      if (typeof window !== "undefined" && (window as any).MetaMask) {
         try {
-          // Find non-phantom provider
-          const nonPhantomProvider = window.ethereum.providers.find(
-            (p: any) => !p.isPhantom && p.isMetaMask
-          );
-
-          if (nonPhantomProvider) {
-            const accounts = await nonPhantomProvider.request({
-              method: "eth_requestAccounts",
-            });
-            console.log("✅ Success with non-Phantom provider");
-            return accounts;
-          }
+          console.log("5️⃣ Trying direct MetaMask access...");
+          const directMetaMask = (window as any).MetaMask;
+          const accounts = await directMetaMask.request({
+            method: "eth_requestAccounts",
+          });
+          console.log("✅ Success with direct MetaMask");
+          return accounts;
         } catch (directError) {
-          console.warn("❌ Direct provider access failed:", directError);
+          console.warn("❌ Direct MetaMask access failed:", directError);
         }
       }
     }
 
     // Re-throw the original error if all methods fail
-    throw requestError;
+    throw new Error(`All connection methods failed. Original error: ${requestError.message}. 
+      
+      This usually happens when multiple wallet extensions conflict. 
+      Try disabling other wallet extensions and keeping only MetaMask enabled.`);
   }
 }
 

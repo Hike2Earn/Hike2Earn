@@ -5,7 +5,8 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(npx hardhat:*)",
-      "Read(c:\\Users\\jmrod\\OneDrive\\Pictures\\Screenshots/**)"
+      "Read(c:\\Users\\jmrod\\OneDrive\\Pictures\\Screenshots/**)",
+      "WebFetch(domain:unsplash.com)"
     ],
     "deny": [],
     "ask": []

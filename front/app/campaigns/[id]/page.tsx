@@ -6,6 +6,8 @@ import { MountainBackground } from "@/components/mountain-background"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ReservationSystem } from "@/components/campaign/reservation-system"
+import { AutoVerificationModal } from "@/components/verification/auto-verification-modal"
 import { 
   Mountain, Calendar, Users, Trophy, MapPin, Clock, ArrowLeft, 
   Thermometer, Activity, Navigation, Shield, Backpack, Heart,
@@ -135,6 +137,8 @@ export default function CampaignDetailsPage() {
   const router = useRouter()
   const [joined, setJoined] = useState(false)
   const [showAllItinerary, setShowAllItinerary] = useState(false)
+  const [hasReservation, setHasReservation] = useState(false)
+  const [showSummitVerification, setShowSummitVerification] = useState(false)
   
   // In a real app, you'd fetch the campaign data based on the ID
   const campaign = mockCampaign
@@ -147,6 +151,30 @@ export default function CampaignDetailsPage() {
   const handleStartClimb = () => {
     // Navigate to climb page with campaign context
     router.push(`/climb?campaign=${campaign.id}&mountain=${encodeURIComponent(campaign.mountain)}`)
+  }
+
+  const handleReservationChange = (hasRes: boolean) => {
+    setHasReservation(hasRes)
+    setJoined(hasRes) // Keep compatibility with existing logic
+  }
+
+  const handleSummitVerification = () => {
+    setShowSummitVerification(true)
+  }
+
+  const closeSummitVerification = () => {
+    setShowSummitVerification(false)
+  }
+
+  // Convert campaign data to match ReservationSystem interface
+  const reservationCampaign = {
+    id: campaign.id,
+    title: campaign.title,
+    mountain: campaign.mountain,
+    location: campaign.location,
+    startDate: campaign.startDate,
+    endDate: campaign.endDate,
+    mountainId: 0 // Mock mountain ID for smart contract
   }
 
   return (
@@ -421,7 +449,7 @@ export default function CampaignDetailsPage() {
                 </div>
               </div>
 
-              {/* Join Campaign */}
+              {/* Campaign Participation */}
               <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6">
                 <div className="text-center mb-4">
                   <div className="text-2xl font-bold mb-1">
@@ -430,66 +458,38 @@ export default function CampaignDetailsPage() {
                   <div className="text-sm text-muted-foreground">spots remaining</div>
                 </div>
                 
-                <div className="w-full bg-muted/30 rounded-full h-2 mb-4">
+                <div className="w-full bg-muted/30 rounded-full h-2 mb-6">
                   <div
                     className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
                     style={{ width: `${(campaign.participants / campaign.maxParticipants) * 100}%` }}
                   />
                 </div>
 
-                {joined ? (
-                  <div className="text-center">
-                    <CheckCircle className="w-8 h-8 text-primary mx-auto mb-2" />
-                    <h4 className="font-semibold text-primary mb-2">Joined Successfully!</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Check your email for next steps and preparation details.
-                    </p>
-                    
-                    {/* Start Climb Button */}
-                    <Button 
-                      className="w-full bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 text-white font-semibold mb-4"
-                      onClick={handleStartClimb}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Climb
-                    </Button>
-                    
-                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg mb-4">
-                      <p className="text-xs text-primary">
-                        <strong>Meeting Point:</strong> {campaign.meetingPoint}
-                      </p>
-                    </div>
-                    
-                    {/* Campaign Info */}
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between p-2 bg-white/5 rounded">
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <Route className="w-3 h-3" />
-                          Campaign Active
-                        </span>
-                        <span className="text-green-400 font-semibold">Ready to climb</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Button 
-                      className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold mb-4"
-                      onClick={handleJoinCampaign}
-                    >
-                      Join Campaign
-                    </Button>
-                    
-                    <div className="text-xs text-center text-muted-foreground">
-                      <p className="mb-2">Requirements:</p>
-                      <ul className="text-left space-y-1">
-                        <li>• High-altitude experience required</li>
-                        <li>• Medical clearance needed</li>
-                        <li>• Mountain insurance mandatory</li>
-                      </ul>
-                    </div>
-                  </>
-                )}
+                {/* Reservation System Component */}
+                <ReservationSystem 
+                  campaign={reservationCampaign}
+                  onReservationChange={handleReservationChange}
+                />
+                
+                {/* Alternative: Direct Summit Verification */}
+                <div className="mt-6 pt-6 border-t border-white/10">
+                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Mountain className="w-4 h-4" />
+                    ¿Solo quieres verificar la cumbre?
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Si ya subiste {campaign.mountain} por tu cuenta, puedes verificar tu cumbre directamente.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSummitVerification}
+                    className="w-full"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Verificar Cumbre Directamente
+                  </Button>
+                </div>
               </div>
 
               {/* Participants */}
@@ -519,6 +519,15 @@ export default function CampaignDetailsPage() {
           </div>
         </main>
       </div>
+      
+      {/* Summit Verification Modal */}
+      <AutoVerificationModal
+        isOpen={showSummitVerification}
+        onClose={closeSummitVerification}
+        type="summit"
+        mountainId={0} // Mock mountain ID for smart contract
+        mountainName={campaign.mountain}
+      />
     </div>
   )
 }

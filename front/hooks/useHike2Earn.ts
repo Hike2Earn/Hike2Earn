@@ -7,7 +7,7 @@ import {
   diagnoseContract,
   testContractFunctions,
 } from "@/lib/contract-diagnostic";
-import { getBestProvider } from "@/lib/wallet-utils";
+import { getBestProvider, isProviderConnected } from "@/lib/wallet-utils";
 import {
   validateNetwork,
   getContractAddress,
@@ -111,8 +111,17 @@ export function useHike2Earn() {
         // Get best provider instead of using window.ethereum directly
         const provider = getBestProvider();
         if (!provider) {
-          throw new Error("No wallet provider available");
+          throw new Error("No wallet provider available. Please install and connect a compatible wallet.");
         }
+
+        // Check connection status properly using eth_accounts
+        const providerConnected = await isProviderConnected(provider);
+        
+        console.log(`🔍 Provider found:`, {
+          hasProvider: !!provider,
+          isMetaMask: provider.isMetaMask,
+          isConnected: providerConnected
+        });
 
         // Dynamic import of ethers with error handling
         const ethersModule = await import("ethers");
@@ -127,9 +136,19 @@ export function useHike2Earn() {
         const network = await ethersProvider.getNetwork();
         const currentChainId = Number(network.chainId);
 
+        console.log(`🔍 Network detection: Current chainId = ${currentChainId}, Type: ${typeof currentChainId}`);
+        console.log(`🔍 Primary network chainId = ${PRIMARY_NETWORK.chainId}, Type: ${typeof PRIMARY_NETWORK.chainId}`);
+
         // Use the new network validation system
         const networkValidation = validateNetwork(currentChainId);
         const networkInfo = getNetworkDisplayInfo(currentChainId);
+
+        console.log(`🔍 Network validation result:`, {
+          needsSwitch: networkValidation.needsSwitch,
+          isSupported: networkValidation.isSupported,
+          currentNetwork: networkValidation.currentNetwork?.name,
+          targetNetwork: networkValidation.targetNetwork.name
+        });
 
         if (networkValidation.needsSwitch) {
           const errorMsg =
@@ -236,6 +255,9 @@ export function useHike2Earn() {
         } else if (err.message?.includes("No wallet provider")) {
           errorMessage =
             "No wallet provider available. Please install MetaMask.";
+        } else if (err.message?.includes("Unexpected error")) {
+          errorMessage =
+            "Wallet connection error. Please refresh the page and try connecting your wallet again.";
         } else if (
           err.message?.includes("Contract is deployed but not functional")
         ) {
@@ -243,6 +265,8 @@ export function useHike2Earn() {
         } else if (err.code === "NETWORK_ERROR") {
           errorMessage =
             "Network error. Please check your internet connection and try again.";
+        } else if (err.message?.includes("user rejected")) {
+          errorMessage = "Connection was rejected. Please approve the wallet connection request.";
         } else if (err.message) {
           errorMessage = err.message;
         }
@@ -272,12 +296,25 @@ export function useHike2Earn() {
 
   // Get campaign count - Memoized to prevent unnecessary re-renders
   const getCampaignCount = useCallback(async (): Promise<number> => {
-    if (!contract) return 0;
+    console.log("🔍 getCampaignCount called, contract:", !!contract);
+    if (!contract) {
+      console.log("❌ No contract available for getCampaignCount");
+      return 0;
+    }
     try {
       setIsLoading(true);
+      console.log("🔄 Calling contract.campaignCount()...");
       const count = await contract.campaignCount();
-      return Number(count);
+      const numCount = Number(count);
+      console.log(`✅ Campaign count from contract: ${numCount} (raw: ${count})`);
+      return numCount;
     } catch (err: any) {
+      console.error("❌ Failed to get campaign count:", err);
+      console.error("❌ Error details:", {
+        message: err.message,
+        code: err.code,
+        data: err.data
+      });
       setError(err.message || "Failed to get campaign count");
       return 0;
     } finally {
@@ -288,11 +325,18 @@ export function useHike2Earn() {
   // Get campaign info - Memoized
   const getCampaignInfo = useCallback(
     async (campaignId: number): Promise<Campaign | null> => {
-      if (!contract || !ethers) return null;
+      console.log(`🔍 getCampaignInfo called for campaign ${campaignId}`);
+      if (!contract || !ethers) {
+        console.log(`❌ Missing dependencies for getCampaignInfo: contract=${!!contract}, ethers=${!!ethers}`);
+        return null;
+      }
       try {
         setIsLoading(true);
+        console.log(`🔄 Calling contract.getCampaignInfo(${campaignId})...`);
         const info = await contract.getCampaignInfo(campaignId);
-        return {
+        console.log(`📊 Raw campaign info for ${campaignId}:`, info);
+
+        const campaign = {
           id: campaignId,
           name: info[0],
           startDate: Number(info[1]),
@@ -302,7 +346,16 @@ export function useHike2Earn() {
           isActive: info[5],
           prizeDistributed: info[6],
         };
+        
+        console.log(`✅ Formatted campaign ${campaignId}:`, campaign);
+        return campaign;
       } catch (err: any) {
+        console.error(`❌ Failed to get campaign info for ${campaignId}:`, err);
+        console.error("❌ Error details:", {
+          message: err.message,
+          code: err.code,
+          data: err.data
+        });
         setError(err.message || "Failed to get campaign info");
         return null;
       } finally {
@@ -507,6 +560,12 @@ export function useHike2Earn() {
 
   // Get all campaigns with robust error handling - Memoized
   const getAllCampaigns = useCallback(async (): Promise<Campaign[]> => {
+    console.log("🔍 getAllCampaigns called - checking conditions:", {
+      contract: !!contract,
+      contractHealthy,
+      address,
+    });
+
     if (!contract || !contractHealthy) {
       console.warn(
         "⚠️ Contract not initialized or unhealthy, cannot fetch campaigns"
@@ -519,28 +578,38 @@ export function useHike2Earn() {
       setIsLoading(true);
       setError(null);
 
+      console.log("🔄 Getting campaign count...");
       const count = await getCampaignCount();
+      console.log(`📊 Campaign count: ${count}`);
 
       if (count === 0) {
+        console.log("ℹ️ No campaigns found in contract (count = 0)");
         return [];
       }
 
       const campaigns: Campaign[] = [];
       const errors: string[] = [];
 
+      console.log(`🔄 Fetching ${count} campaigns...`);
+
       // Fetch campaigns in parallel for better performance
-      const campaignPromises = Array.from({ length: count }, (_, i) =>
-        getCampaignInfo(i).catch((error) => {
+      const campaignPromises = Array.from({ length: count }, (_, i) => {
+        console.log(`🔄 Creating promise for campaign ${i}`);
+        return getCampaignInfo(i).catch((error) => {
+          console.error(`❌ Failed to fetch campaign ${i}:`, error);
           errors.push(`Failed to fetch campaign ${i}: ${error.message}`);
           return null;
-        })
-      );
+        });
+      });
 
+      console.log(`🔄 Waiting for ${campaignPromises.length} campaign promises...`);
       const campaignResults = await Promise.all(campaignPromises);
+      console.log("📊 Campaign results:", campaignResults);
 
       // Filter out null results and add valid campaigns
       campaignResults.forEach((campaign, index) => {
         if (campaign) {
+          console.log(`✅ Adding campaign ${index}:`, campaign);
           campaigns.push(campaign);
         } else {
           console.warn(`⚠️ Campaign ${index} could not be loaded`);
@@ -554,9 +623,11 @@ export function useHike2Earn() {
         );
       }
 
+      console.log(`✅ Successfully loaded ${campaigns.length} campaigns:`, campaigns);
       return campaigns;
     } catch (error: any) {
       console.error("❌ Failed to get all campaigns:", error);
+      console.error("❌ Error stack:", error.stack);
       const errorMessage = `Failed to load campaigns: ${
         error.message || "Unknown error"
       }`;
@@ -653,24 +724,73 @@ export function useHike2Earn() {
     [contract]
   );
 
-  // Mint climbing NFT (requires signer) - Memoized
+  // Mint climbing NFT (requires signer) - Enhanced with MetaMask priority
   const mintClimbingNFT = useCallback(
     async (mountainId: number, proofURI: string): Promise<string | null> => {
-      if (!contract || !isConnected || !ethers) return null;
+      if (!contract || !isConnected || !ethers) {
+        console.error("❌ mintClimbingNFT: Missing dependencies", {
+          contract: !!contract,
+          isConnected,
+          ethers: !!ethers
+        });
+        return null;
+      }
+
+      console.log("🪙 Starting NFT minting process...", { mountainId, proofURI });
 
       try {
         setIsLoading(true);
-        const provider = new ethers.ethers.BrowserProvider(window.ethereum!);
+        setError(null);
+
+        // Step 1: Get MetaMask provider specifically
+        console.log("🎯 Getting MetaMask provider for minting...");
+        const { isolateMetaMaskProvider, validateProviderForMinting } = await import("@/lib/wallet-utils");
+        
+        let provider: any = null;
+        let selectedProvider = isolateMetaMaskProvider();
+
+        if (selectedProvider) {
+          console.log("✅ Found MetaMask provider, validating...");
+          const isValid = await validateProviderForMinting(selectedProvider);
+          
+          if (isValid) {
+            provider = new ethers.ethers.BrowserProvider(selectedProvider);
+            console.log("✅ MetaMask provider validated and ready");
+          } else {
+            console.warn("⚠️ MetaMask provider validation failed");
+          }
+        }
+
+        // Fallback to window.ethereum if MetaMask isolation fails
+        if (!provider) {
+          console.log("🔄 Falling back to window.ethereum...");
+          if (window.ethereum) {
+            provider = new ethers.ethers.BrowserProvider(window.ethereum);
+            console.log("⚠️ Using window.ethereum fallback");
+          } else {
+            throw new Error("No wallet provider available for minting");
+          }
+        }
+
+        // Step 2: Get signer and prepare contract
+        console.log("✍️ Getting signer from provider...");
         const signer = await provider.getSigner();
         const contractWithSigner = contract.connect(signer);
 
+        // Step 3: Execute minting transaction
+        console.log("⚡ Executing minting transaction...");
         const tx = await contractWithSigner.mintClimbingNFT(
           mountainId,
           proofURI
         );
-        const receipt = await tx.wait();
+        console.log("📋 Transaction sent:", tx.hash);
 
-        // Extract token ID from events
+        // Step 4: Wait for confirmation
+        console.log("⏳ Waiting for transaction confirmation...");
+        const receipt = await tx.wait();
+        console.log("✅ Transaction confirmed:", receipt.hash);
+
+        // Step 5: Extract token ID from events
         const event = receipt.logs.find(
           (log: any) =>
             log.topics[0] ===
@@ -684,13 +804,28 @@ export function useHike2Earn() {
             ["uint256"],
             event.topics[1]
           )[0];
+          console.log("🎉 NFT minted successfully with token ID:", tokenId.toString());
           return tokenId.toString();
         }
 
+        console.log("📄 Using transaction hash as token ID:", receipt.hash);
         return receipt.hash;
       } catch (err: any) {
-        setError(err.message || "Failed to mint NFT");
-        throw err;
+        console.error("❌ NFT minting failed:", err);
+        
+        // Enhanced error handling for specific provider issues
+        let errorMessage = err.message || "Failed to mint NFT";
+        
+        if (err.message?.includes("selectExtension") || err.message?.includes("Unexpected error")) {
+          errorMessage = "Multiple wallet extensions detected. Please disable other wallets and keep only MetaMask enabled.";
+        } else if (err.message?.includes("user rejected")) {
+          errorMessage = "Transaction was rejected by user";
+        } else if (err.message?.includes("insufficient funds")) {
+          errorMessage = "Insufficient funds for transaction";
+        }
+
+        setError(errorMessage);
+        throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }

@@ -6,6 +6,7 @@ import { BentoGrid } from "@/components/bento-grid"
 import { MountainBackground } from "@/components/mountain-background"
 import { CampaignsWidget } from "@/components/campaigns-widget"
 import { PeakDetailsSidePanel } from "@/components/peak-details-side-panel"
+import { MyEvents } from "@/components/user/my-events"
 
 const mendozaPeaks = [
   {
@@ -183,6 +184,7 @@ export default function DashboardPage() {
       <div className="relative z-10">
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           <CampaignsWidget />
+          <MyEvents />
           <BentoGrid 
             sidePanelOpen={isPanelOpen}
             onPeakSelect={handlePeakSelect}

@@ -27,7 +27,7 @@ export function DashboardHeader() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <img src="/icono.jpg" alt="Hike2Earn" className="w-full h-full object-contain" />
+              <img src="/Logo-Hike2Earn.png" alt="Hike2Earn" className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-bold text-gradient">Hike2Earn</span>
           </Link>

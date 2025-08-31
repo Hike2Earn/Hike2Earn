@@ -311,9 +311,9 @@ export function CreateCampaignModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] bg-white border-gray-200 max-h-[90vh] overflow-y-auto shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-slate-100 text-xl">
+          <DialogTitle className="text-gray-900 text-xl font-bold">
             Create New Campaign
           </DialogTitle>
         </DialogHeader>
@@ -321,13 +321,13 @@ export function CreateCampaignModal({
         <div className="space-y-6">
           {/* Wallet Status */}
           {!isConnected ? (
-            <Alert className="bg-yellow-500/20 border-yellow-500/30">
-              <Wallet className="h-4 w-4" />
-              <AlertDescription className="text-yellow-200">
+            <Alert className="bg-yellow-50 border-yellow-200">
+              <Wallet className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
                 Connect your wallet to create campaigns.{" "}
                 <Button
                   variant="link"
-                  className="p-0 h-auto text-yellow-200 underline"
+                  className="p-0 h-auto text-yellow-800 underline font-semibold"
                   onClick={connectWallet}
                 >
                   Connect Wallet
@@ -335,28 +335,28 @@ export function CreateCampaignModal({
               </AlertDescription>
             </Alert>
           ) : (
-            <Alert className="bg-green-500/20 border-green-500/30">
-              <Wallet className="h-4 w-4" />
-              <AlertDescription className="text-green-200">
-                Wallet connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+            <Alert className="bg-green-50 border-green-200">
+              <Wallet className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 font-medium">
+                ✅ Wallet connected: {address?.slice(0, 6)}...{address?.slice(-4)}
               </AlertDescription>
             </Alert>
           )}
 
           {/* Contract Status */}
           {contractError && (
-            <Alert className="bg-red-500/20 border-red-500/30">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-red-200">
+            <Alert className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
                 Contract Error: {contractError}
               </AlertDescription>
             </Alert>
           )}
 
           {!contractHealthy && isConnected && (
-            <Alert className="bg-yellow-500/20 border-yellow-500/30">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-yellow-200">
+            <Alert className="bg-yellow-50 border-yellow-200">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
                 Smart contract is not available. Please check your network
                 connection.
               </AlertDescription>
@@ -365,18 +365,18 @@ export function CreateCampaignModal({
 
           {/* Creation Progress */}
           {creationStep === "validating" && (
-            <Alert className="bg-blue-500/20 border-blue-500/30">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertDescription className="text-blue-200">
+            <Alert className="bg-blue-50 border-blue-200">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <AlertDescription className="text-blue-800">
                 Validating campaign data...
               </AlertDescription>
             </Alert>
           )}
 
           {creationStep === "creating" && (
-            <Alert className="bg-blue-500/20 border-blue-500/30">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertDescription className="text-blue-200">
+            <Alert className="bg-blue-50 border-blue-200">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <AlertDescription className="text-blue-800">
                 Creating campaign on blockchain... Please confirm the
                 transaction in your wallet.
               </AlertDescription>
@@ -384,13 +384,13 @@ export function CreateCampaignModal({
           )}
 
           {creationStep === "success" && txHash && (
-            <Alert className="bg-green-500/20 border-green-500/30">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription className="text-green-200">
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
                 🎉 Campaign request submitted successfully!
                 <br />
                 Request ID:{" "}
-                <code className="text-xs">{txHash.slice(0, 20)}...</code>
+                <code className="text-xs bg-green-100 px-1 rounded">{txHash.slice(0, 20)}...</code>
                 <br />
                 Our partnership team will review and create your campaign within
                 24 hours.
@@ -403,9 +403,9 @@ export function CreateCampaignModal({
           {/* Error Messages */}
           {(errors.wallet || errors.submit || errors.contract) &&
             creationStep === "error" && (
-              <Alert className="bg-red-500/20 border-red-500/30">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-red-200">
+              <Alert className="bg-red-50 border-red-200">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">
                   {errors.wallet || errors.submit || errors.contract}
                 </AlertDescription>
               </Alert>
@@ -414,7 +414,7 @@ export function CreateCampaignModal({
           {/* Basic Information */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name" className="text-slate-200">
+              <Label htmlFor="name" className="text-gray-700 font-medium">
                 Campaign Name
               </Label>
               <Input
@@ -422,15 +422,15 @@ export function CreateCampaignModal({
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter campaign name..."
-                className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
+                className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
               />
               {errors.name && (
-                <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+                <p className="text-red-600 text-sm mt-1">{errors.name}</p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="description" className="text-slate-200">
+              <Label htmlFor="description" className="text-gray-700 font-medium">
                 Description
               </Label>
               <Textarea
@@ -440,10 +440,10 @@ export function CreateCampaignModal({
                   handleInputChange("description", e.target.value)
                 }
                 placeholder="Describe your campaign goals, requirements, and details..."
-                className="min-h-[100px] bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 resize-none"
+                className="min-h-[100px] bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 resize-none focus:border-green-500 focus:ring-green-500"
               />
               {errors.description && (
-                <p className="text-red-400 text-sm mt-1">
+                <p className="text-red-600 text-sm mt-1">
                   {errors.description}
                 </p>
               )}
@@ -455,9 +455,9 @@ export function CreateCampaignModal({
             <div>
               <Label
                 htmlFor="startDate"
-                className="text-white flex items-center gap-2"
+                className="text-gray-700 font-medium flex items-center gap-2"
               >
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-4 w-4 text-gray-600" />
                 Start Date
               </Label>
               <Input
@@ -465,19 +465,19 @@ export function CreateCampaignModal({
                 type="datetime-local"
                 value={formData.startDate}
                 onChange={(e) => handleInputChange("startDate", e.target.value)}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-gray-50 border-gray-300 text-gray-900 focus:border-green-500 focus:ring-green-500"
               />
               {errors.startDate && (
-                <p className="text-red-400 text-sm mt-1">{errors.startDate}</p>
+                <p className="text-red-600 text-sm mt-1">{errors.startDate}</p>
               )}
             </div>
 
             <div>
               <Label
                 htmlFor="endDate"
-                className="text-white flex items-center gap-2"
+                className="text-gray-700 font-medium flex items-center gap-2"
               >
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-4 w-4 text-gray-600" />
                 End Date
               </Label>
               <Input
@@ -485,18 +485,18 @@ export function CreateCampaignModal({
                 type="datetime-local"
                 value={formData.endDate}
                 onChange={(e) => handleInputChange("endDate", e.target.value)}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-gray-50 border-gray-300 text-gray-900 focus:border-green-500 focus:ring-green-500"
               />
               {errors.endDate && (
-                <p className="text-red-400 text-sm mt-1">{errors.endDate}</p>
+                <p className="text-red-600 text-sm mt-1">{errors.endDate}</p>
               )}
             </div>
           </div>
 
           {/* Mountain Selection */}
           <div>
-            <Label className="text-white flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+            <Label className="text-gray-700 font-medium flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-gray-600" />
               Select Mountains
             </Label>
             <div className="grid grid-cols-2 gap-2 mt-2">
@@ -506,38 +506,38 @@ export function CreateCampaignModal({
                   onClick={() => toggleMountain(peak.id)}
                   className={`p-3 rounded-lg border cursor-pointer transition-all ${
                     formData.selectedMountains.includes(peak.id)
-                      ? "bg-emerald-500/20 border-emerald-500/50"
-                      : "bg-white/5 border-white/10 hover:bg-white/10"
+                      ? "bg-green-50 border-green-300 ring-2 ring-green-500/20"
+                      : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="text-white font-medium text-sm">
+                  <div className="text-gray-900 font-medium text-sm">
                     {peak.name}
                   </div>
-                  <div className="text-muted-foreground text-xs">
+                  <div className="text-gray-600 text-xs">
                     {peak.altitude} • {peak.difficulty}
                   </div>
                 </div>
               ))}
             </div>
             {errors.mountains && (
-              <p className="text-red-400 text-sm mt-1">{errors.mountains}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.mountains}</p>
             )}
           </div>
 
           {/* Prize Pool */}
           <div className="space-y-4">
-            <Label className="text-white flex items-center gap-2">
-              <Trophy className="h-4 w-4" />
+            <Label className="text-gray-700 font-medium flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-gray-600" />
               Prize Pool
             </Label>
 
             {/* LSK Prize */}
             <div>
-              <Label htmlFor="lskPrize" className="text-slate-200 text-sm">
+              <Label htmlFor="lskPrize" className="text-gray-700 text-sm">
                 LSK Prize Pool
               </Label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
                   id="lskPrize"
                   type="number"
@@ -547,13 +547,13 @@ export function CreateCampaignModal({
                     handleInputChange("prizePoolLSK", e.target.value)
                   }
                   placeholder="Enter amount in LSK"
-                  className="pl-10 bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
+                  className="pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
               </div>
             </div>
 
             {errors.prizes && (
-              <p className="text-red-400 text-sm mt-1">{errors.prizes}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.prizes}</p>
             )}
           </div>
 
@@ -562,7 +562,7 @@ export function CreateCampaignModal({
             <Button
               onClick={onClose}
               variant="outline"
-              className="bg-slate-800 border-slate-600 hover:bg-slate-700"
+              className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
@@ -574,7 +574,7 @@ export function CreateCampaignModal({
                 !contractHealthy ||
                 creationStep === "success"
               }
-              className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 disabled:opacity-50"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white disabled:opacity-50"
             >
               {creationStep === "validating" && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

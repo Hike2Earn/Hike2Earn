@@ -24,6 +24,8 @@ import {
   NetworkSwitcher,
   useNetworkStatus,
 } from "@/components/network-switcher";
+import { WalletErrorBoundary, useWalletErrorHandler } from "@/components/wallet-error-boundary";
+import { useWalletConflictResolver } from "@/hooks/useWalletConflictResolver";
 import { getNetworkDisplayInfo } from "@/lib/network-config";
 import Link from "next/link";
 
@@ -57,21 +59,21 @@ interface CreateCampaignData {
 const allCampaigns: Campaign[] = [
   {
     id: "1",
-    title: "Aconcagua Summit Expedition",
+    title: "Aconcagua Trail Cleanup Campaign",
     description:
-      "Join us for an epic 14-day expedition to reach the highest peak in the Americas at 6,962m. This challenging expedition requires advanced mountaineering skills and excellent physical condition.",
-    type: "summit",
-    difficulty: "expert",
+      "Help preserve the trails of the highest peak in the Americas! Join our environmental cleanup campaign to protect Aconcagua's pristine ecosystem. All equipment provided, suitable for all skill levels.",
+    type: "cleanup",
+    difficulty: "beginner",
     mountain: "Aconcagua",
     location: "Mendoza, Argentina",
     startDate: "2025-01-15",
-    endDate: "2025-01-29",
-    duration: "14 days",
-    participants: 8,
-    maxParticipants: 12,
-    reward: 2500,
-    image: "/campaigns/aconcagua.jpg",
-    elevation: "6,962m",
+    endDate: "2025-01-17",
+    duration: "3 days",
+    participants: 24,
+    maxParticipants: 40,
+    reward: 400,
+    image: "/cerros/aconcagua.jpg",
+    elevation: "3,500m",
   },
   {
     id: "2",
@@ -88,7 +90,7 @@ const allCampaigns: Campaign[] = [
     participants: 15,
     maxParticipants: 25,
     reward: 350,
-    image: "/campaigns/cerro-plomo.jpg",
+    image: "/cerros/cerro-plomo.jpg",
     elevation: "5,424m",
   },
   {
@@ -106,7 +108,7 @@ const allCampaigns: Campaign[] = [
     participants: 32,
     maxParticipants: 50,
     reward: 200,
-    image: "/campaigns/trail-cleanup.jpg",
+    image: "/cerros/trail-cleanup.jpg",
     elevation: "2,100m",
   },
   {
@@ -124,7 +126,7 @@ const allCampaigns: Campaign[] = [
     participants: 6,
     maxParticipants: 15,
     reward: 800,
-    image: "/campaigns/volcan-villarrica.jpg",
+    image: "/cerros/volcan-villarrica.jpg",
     elevation: "2,847m",
   },
   {
@@ -142,7 +144,7 @@ const allCampaigns: Campaign[] = [
     participants: 4,
     maxParticipants: 12,
     reward: 1200,
-    image: "/campaigns/torres-del-paine.jpg",
+    image: "/cerros/torres-del-paine.jpg",
     elevation: "2,500m",
   },
   {
@@ -160,7 +162,7 @@ const allCampaigns: Campaign[] = [
     participants: 12,
     maxParticipants: 20,
     reward: 150,
-    image: "/campaigns/skills-course.jpg",
+    image: "/cerros/cerro-san-cristobal.jpg",
     elevation: "880m",
   },
 ];
@@ -187,6 +189,7 @@ function CampaignsPageContent() {
   const [userCampaigns, setUserCampaigns] = useState<Campaign[]>([]);
   const [contractCampaigns, setContractCampaigns] = useState<Campaign[]>([]);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const { isConnected } = useWallet();
   const {
@@ -197,60 +200,135 @@ function CampaignsPageContent() {
   } = useHike2Earn();
   const { chainId, needsSwitch, isSupported } = useNetworkStatus();
 
-
-
-
   const { handleError } = useErrorHandler();
+  const { error: walletError, handleError: handleWalletError, retry: retryWallet } = useWalletErrorHandler();
+  const { status: conflictStatus, resolveConflicts, handleEvmAskError } = useWalletConflictResolver();
 
   // Memoize the campaign loading function to avoid dependency issues
   const loadContractCampaigns = useCallback(async () => {
     // Prevent concurrent loading
     if (isLoadingCampaigns) {
+      console.log("🔄 Already loading campaigns, skipping...");
       return;
     }
 
+    console.log("🔍 Checking conditions for loading campaigns:", {
+      isConnected,
+      contractHealthy,
+      isSupported,
+      needsSwitch,
+      chainId
+    });
+
     if (isConnected && contractHealthy && isSupported && !needsSwitch) {
       setIsLoadingCampaigns(true);
+      console.log("✅ All conditions met, starting to load contract campaigns...");
 
       try {
+        console.log("🔄 Calling getAllCampaigns...");
         const campaigns = await getAllCampaigns();
 
-        // Convert contract campaigns to UI format
-        const formattedCampaigns: Campaign[] = campaigns.map((campaign) => ({
-          id: `contract-${campaign.id}`,
-          title: campaign.name || `Campaign #${campaign.id}`,
-          description: `Smart contract campaign with ${campaign.prizePoolLSK} LSK prize pool. Join by completing mountain climbs and earning NFTs!`,
-          type: "summit" as const,
-          difficulty: "intermediate" as const,
-          mountain: "Blockchain Mountain",
-          location: "Lisk Network",
-          startDate: new Date(campaign.startDate * 1000)
-            .toISOString()
-            .split("T")[0],
-          endDate: new Date(campaign.endDate * 1000)
-            .toISOString()
-            .split("T")[0],
-          duration:
-            Math.ceil(
-              (campaign.endDate - campaign.startDate) / (24 * 60 * 60)
-            ) + " days",
-          participants: campaign.participantCount,
-          maxParticipants: Math.max(campaign.participantCount + 10, 20), // Estimate
-          reward: parseFloat(campaign.prizePoolLSK) * 1000, // Convert LSK to HIKE tokens (example rate)
-          image: "/campaigns/contract-campaign.jpg",
-          elevation: "Variable",
-        }));
+        console.log("📊 getAllCampaigns result:", {
+          campaigns,
+          type: typeof campaigns,
+          length: campaigns?.length,
+          isArray: Array.isArray(campaigns)
+        });
 
+        if (!campaigns || !Array.isArray(campaigns)) {
+          console.warn("⚠️ getAllCampaigns returned invalid data:", campaigns);
+          setContractCampaigns([]);
+          return;
+        }
+
+        if (campaigns.length === 0) {
+          console.log("ℹ️ No campaigns found in contract");
+          setContractCampaigns([]);
+          return;
+        }
+
+        // Convert contract campaigns to UI format
+        const formattedCampaigns: Campaign[] = campaigns.map((campaign, index) => {
+          console.log(`🔄 Formatting campaign ${index}:`, campaign);
+          
+          return {
+            id: `contract-${campaign.id}`,
+            title: campaign.name || `Blockchain Campaign #${campaign.id}`,
+            description: `Blockchain mountain climbing campaign with ${campaign.prizePoolLSK} LSK prize pool. Complete the challenge and earn rewards through our smart contract system!`,
+            type: "summit" as const,
+            difficulty: "intermediate" as const,
+            mountain: "Smart Contract Peak",
+            location: "Lisk Blockchain",
+            startDate: new Date(campaign.startDate * 1000)
+              .toISOString()
+              .split("T")[0],
+            endDate: new Date(campaign.endDate * 1000)
+              .toISOString()
+              .split("T")[0],
+            duration:
+              Math.ceil(
+                (campaign.endDate - campaign.startDate) / (24 * 60 * 60)
+              ) + " days",
+            participants: campaign.participantCount,
+            maxParticipants: Math.max(campaign.participantCount + 10, 50),
+            reward: Math.floor(parseFloat(campaign.prizePoolLSK) * 100),
+            image: "/campaigns/contract-campaign.jpg",
+            elevation: "Blockchain Height",
+          };
+        });
+
+        console.log(`✅ Successfully formatted ${formattedCampaigns.length} contract campaigns:`, formattedCampaigns);
         setContractCampaigns(formattedCampaigns);
       } catch (error) {
+        console.error("❌ Failed to load contract campaigns:", error);
+        console.error("❌ Error details:", {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
         setContractCampaigns([]); // Clear campaigns on error
+        
+        // Handle different types of errors gracefully
         if (error instanceof Error) {
-          handleError(error);
+          if (error.message.includes("Unexpected error") || error.message.includes("evmAsk.js") || error.message.includes("selectExtension")) {
+            console.warn("⚠️ Phantom wallet conflict detected, attempting resolution...");
+            handleWalletError(error);
+            
+            // Try to handle evmAsk error specifically
+            try {
+              const resolvedProvider = await handleEvmAskError(error);
+              if (resolvedProvider) {
+                console.log("✅ Provider conflict resolved, retrying campaign load...");
+                setTimeout(() => loadContractCampaigns(), 1500);
+              } else if (retryCount < 2) {
+                // Fallback: try conflict resolution
+                const resolved = await resolveConflicts();
+                if (resolved) {
+                  setTimeout(() => loadContractCampaigns(), 2000);
+                } else if (retryCount < 2) {
+                  setTimeout(() => {
+                    setRetryCount(prev => prev + 1);
+                    loadContractCampaigns();
+                  }, 3000 * (retryCount + 1));
+                }
+              }
+            } catch (resolveError) {
+              console.error("❌ Failed to resolve wallet conflict:", resolveError);
+            }
+          } else if (error.message.includes("user rejected")) {
+            console.warn("⚠️ User rejected wallet connection");
+          } else {
+            handleError(error);
+          }
+        } else {
+          console.error("❌ Unknown error type:", error);
+          handleError(new Error("Failed to load blockchain campaigns"));
         }
       } finally {
         setIsLoadingCampaigns(false);
       }
     } else {
+      console.log("⚠️ Conditions not met, not loading campaigns");
+      // Clear campaigns if not connected or network wrong
       setContractCampaigns([]);
     }
   }, [
@@ -263,6 +341,7 @@ function CampaignsPageContent() {
     handleError,
     isLoadingCampaigns,
     contractError,
+    retryCount,
   ]);
 
   // Load campaigns from contract with proper dependency management
@@ -405,64 +484,7 @@ function CampaignsPageContent() {
               in the Andes.
             </p>
 
-            {/* Campaign Creation Info */}
-            {isConnected && contractHealthy && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-emerald-500/10 to-orange-500/10 border border-emerald-500/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-emerald-400">
-                    🚀 Create Your Campaign
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Anyone can create mountain climbing campaigns! Set up your own
-                  adventure, invite climbers, and earn rewards. Our team reviews
-                  all campaigns to ensure quality and safety.
-                </p>
 
-
-              </div>
-            )}
-
-            {/* Contract Status Info */}
-            {isConnected && contractHealthy && isSupported && !needsSwitch && (
-              <div className="mt-3 p-2.5 bg-green-500/5 border border-green-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
-                  <div>
-                    <span className="text-xs font-medium text-green-400">
-                      ✅ Smart Contract Active
-                    </span>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      Connected to Hike2Earn contract on{" "}
-                      {chainId
-                        ? getNetworkDisplayInfo(chainId).name
-                        : "Lisk Sepolia"}
-                    </p>
-                    <p className="text-xs text-muted-foreground/80 mt-1">
-                      {contractCampaigns.length > 0 ? (
-                        <>
-                          <span className="text-green-400 font-medium">
-                            🎉 {contractCampaigns.length} live campaigns
-                          </span>{" "}
-                          from blockchain + {allCampaigns.length} demo campaigns
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-yellow-400">
-                            ℹ️ No campaigns yet
-                          </span>{" "}
-                          in contract + {allCampaigns.length} demo campaigns
-                        </>
-                      )}
-                      {contractLoading && (
-                        <span className="ml-1 text-blue-400">Loading...</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Contract Status Info - Network Wrong */}
             {isConnected &&
@@ -480,8 +502,8 @@ function CampaignsPageContent() {
                         campaigns
                       </p>
                       <p className="text-xs text-muted-foreground/80 mt-1">
-                        Currently showing {allCampaigns.length} demo campaigns
-                        only
+                        Currently showing {allCampaigns.length} featured campaigns
+                        (blockchain campaigns will load when connected to Lisk Sepolia)
                       </p>
                     </div>
                   </div>
@@ -502,7 +524,7 @@ function CampaignsPageContent() {
                         "Unable to connect to smart contract. Some features may be limited."}
                     </p>
                     <p className="text-xs text-muted-foreground/80 mt-1">
-                      Showing {allCampaigns.length} demo campaigns only
+                      Showing {allCampaigns.length} featured campaigns only
                     </p>
                   </div>
                 </div>
@@ -752,13 +774,15 @@ function CampaignsPageContent() {
 
 export default function CampaignsPage() {
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        console.error("🚨 Campaign page error:", error);
-        console.error("🚨 Error info:", errorInfo);
-      }}
-    >
-      <CampaignsPageContent />
-    </ErrorBoundary>
+    <WalletErrorBoundary>
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error("🚨 Campaign page error:", error);
+          console.error("🚨 Error info:", errorInfo);
+        }}
+      >
+        <CampaignsPageContent />
+      </ErrorBoundary>
+    </WalletErrorBoundary>
   );
 }
