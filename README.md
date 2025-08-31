@@ -259,7 +259,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## 🌐 Links & Resources
 
-- **Website**: [hike2earn.com](hike2-earn-cmgb.vercel.app) (Deployed on Vercel)
+- **Website**: [hike2earn.com](https://hike2-earn-cmgb.vercel.app) (Deployed on Vercel)
 - **GitHub**: [Official repository](https://github.com/hike2earn/hike2earn)
 - **Lisk Network**: [Official documentation](https://docs.lisk.com/)
 - **Vercel**: [Deployment platform](https://vercel.com)
