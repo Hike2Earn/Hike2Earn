@@ -895,10 +895,6 @@ function CampaignsPageContent() {
             })}
           </div>
 
-
-
-}
-
           {/* No Results */}
           {filteredCampaigns.length === 0 && (
             <div className="text-center py-12">
