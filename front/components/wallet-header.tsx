@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { useWallet } from "./wallet-provider"
 import { Wallet, Copy, ExternalLink, AlertCircle } from "lucide-react"
 import { useState } from "react"
-import { FLARE_NETWORK_CONFIG } from "@/lib/web3" // Declare the variable here
+import { LISK_NETWORK_CONFIG } from "@/lib/web3" // Import LISK network config
 
 export function WalletHeader() {
   const { isConnected, address, connectWallet, disconnectWallet, isLoading, error } = useWallet()
@@ -90,7 +90,7 @@ export function WalletHeader() {
               variant="ghost"
               size="sm"
               className="w-8 h-8 p-0"
-              onClick={() => window.open(`${FLARE_NETWORK_CONFIG.blockExplorer}/address/${address}`, "_blank")}
+              onClick={() => window.open(`${LISK_NETWORK_CONFIG.blockExplorer}/address/${address}`, "_blank")}
             >
               <ExternalLink className="w-3 h-3" />
             </Button>

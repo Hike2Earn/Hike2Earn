@@ -1,45 +1,31 @@
-// Contract addresses and configuration
+// Unified contract configuration - now uses network-config.ts exclusively
+import {
+  SUPPORTED_NETWORKS as NETWORKS,
+  getNetworkByChainId,
+  getContractAddress,
+  PRIMARY_NETWORK,
+} from "./network-config";
+
+// Simplified contract addresses - delegates to network-config.ts
 export const CONTRACT_ADDRESSES = {
-  // Will be updated by deployment script
-  HIKE2EARN: "0xD9986E17F96e99D11330F72F90f78982b8F29570", // Deployed contract address
-} as const
+  HIKE2EARN: PRIMARY_NETWORK.contracts.HIKE2EARN,
+} as const;
 
+// Re-export networks for backward compatibility
 export const SUPPORTED_NETWORKS = {
-  LISK_MAINNET: {
-    chainId: 1135,
-    name: "Lisk",
-    currency: "LSK",
-    rpcUrl: "https://rpc.api.lisk.com",
-    blockExplorer: "https://liskscan.com",
-  },
-  LISK_SEPOLIA: {
-    chainId: 4202,
-    name: "Lisk Sepolia",
-    currency: "LSK",
-    rpcUrl: "https://rpc.sepolia-api.lisk.com",
-    blockExplorer: "https://sepolia-blockscout.lisk.com",
-  },
-  LOCALHOST: {
-    chainId: 31337,
-    name: "Hardhat Network",
-    currency: "ETH",
-    rpcUrl: "http://127.0.0.1:8545",
-    blockExplorer: "",
-  }
-} as const
+  LISK_MAINNET: NETWORKS.LISK_MAINNET,
+  LISK_SEPOLIA: NETWORKS.LISK_SEPOLIA,
+  LOCALHOST: NETWORKS.LOCALHOST,
+} as const;
 
-// Get current network based on chain ID
+// Legacy function - use getNetworkByChainId from network-config.ts instead
 export function getCurrentNetwork(chainId: number) {
-  switch (chainId) {
-    case 1135:
-      return SUPPORTED_NETWORKS.LISK_MAINNET
-    case 4202:
-      return SUPPORTED_NETWORKS.LISK_SEPOLIA
-    case 31337:
-      return SUPPORTED_NETWORKS.LOCALHOST
-    default:
-      return null
-  }
+  return getNetworkByChainId(chainId);
+}
+
+// Helper function to get contract address for current network
+export function getHike2EarnAddress(chainId: number): string | null {
+  return getContractAddress(chainId, "HIKE2EARN");
 }
 
 // Contract deployment info (updated by deployment script)
@@ -49,4 +35,4 @@ export const DEPLOYMENT_INFO = {
   transactionHash: "",
   deployedAt: "",
   gasUsed: 0,
-} as const
+} as const;

@@ -1,180 +1,268 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Heart, MessageCircle, Share2, Trophy, Mountain, Camera, Plus } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  MapPin,
+  Mountain,
+  Users,
+  Trophy,
+} from "lucide-react";
 
 interface Post {
-  id: string
-  user: {
-    name: string
-    avatar: string
-    level: number
-  }
-  content: string
-  image?: string
-  achievement?: {
-    type: "summit" | "distance" | "elevation"
-    title: string
-    value: string
-  }
-  likes: number
-  comments: number
-  timestamp: string
-  isLiked: boolean
+  id: string;
+  author: {
+    name: string;
+    avatar: string;
+    badge: string;
+  };
+  content: string;
+  image?: string;
+  timestamp: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  location?: string;
+  activity?: {
+    type: "climb" | "achievement" | "group";
+    mountain?: string;
+    distance?: number;
+    elevation?: number;
+  };
 }
 
 const mockPosts: Post[] = [
   {
     id: "1",
-    user: { name: "Alex Chen", avatar: "/mountain-climber-avatar.png", level: 15 },
+    author: {
+      name: "Ana García",
+      avatar: "/api/placeholder/40/40",
+      badge: "🏔️ Summit Master",
+    },
     content:
-      "Just conquered Mount Washington! The view from the summit was absolutely breathtaking. 4,302 feet of pure determination! 🏔️",
-    image: "/mountain-summit-view.png",
-    achievement: { type: "summit", title: "Summit Master", value: "4,302 ft" },
+      "¡Increíble ascenso al Cerro Manquehue! Las vistas desde la cima son espectaculares. ¿Alguien más ha hecho esta ruta?",
+    image: "/api/placeholder/600/400",
+    timestamp: "2h ago",
     likes: 24,
     comments: 8,
-    timestamp: "2 hours ago",
-    isLiked: false,
+    shares: 3,
+    location: "Cerro Manquehue, Chile",
+    activity: {
+      type: "climb",
+      mountain: "Cerro Manquehue",
+      distance: 8.5,
+      elevation: 1632,
+    },
   },
   {
     id: "2",
-    user: { name: "Sarah Johnson", avatar: "/mountain-climber-avatar.png", level: 12 },
-    content: "Weekly challenge complete! 50 miles of hiking this week. The HIKE rewards are flowing in! 💪",
-    achievement: { type: "distance", title: "Distance Warrior", value: "50 miles" },
-    likes: 18,
-    comments: 5,
-    timestamp: "4 hours ago",
-    isLiked: true,
+    author: {
+      name: "Carlos Mendoza",
+      avatar: "/api/placeholder/40/40",
+      badge: "🌟 Trail Blazer",
+    },
+    content:
+      "Nuevo logro desbloqueado: ¡100km recorridos este mes! La comunidad Hike2Earn me motiva a seguir adelante. 🏆",
+    timestamp: "4h ago",
+    likes: 156,
+    comments: 23,
+    shares: 12,
+    activity: {
+      type: "achievement",
+      distance: 100,
+    },
   },
   {
     id: "3",
-    user: { name: "Mike Rodriguez", avatar: "/mountain-climber-avatar.png", level: 20 },
-    content: "Training for the community challenge next week. Who else is joining the group climb to Eagle Peak?",
-    likes: 31,
-    comments: 12,
-    timestamp: "6 hours ago",
-    isLiked: false,
+    author: {
+      name: "Grupo Los Andes",
+      avatar: "/api/placeholder/40/40",
+      badge: "👥 Adventure Team",
+    },
+    content:
+      "¡Únete a nuestra expedición grupal al Cajón del Maipo! Saldremos este fin de semana. Experiencia de nivel intermedio requerida.",
+    timestamp: "6h ago",
+    likes: 89,
+    comments: 45,
+    shares: 28,
+    location: "Cajón del Maipo, Chile",
+    activity: {
+      type: "group",
+      mountain: "Cajón del Maipo",
+    },
   },
-]
+];
 
 export function SocialFeed() {
-  const [posts, setPosts] = useState(mockPosts)
+  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [loading, setLoading] = useState(false);
 
   const handleLike = (postId: string) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
-          : post,
-      ),
-    )
-  }
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, likes: post.likes + 1 } : post
+      )
+    );
+  };
+
+  const handleComment = (postId: string) => {
+    // Placeholder for comment functionality
+    console.log("Comment on post:", postId);
+  };
+
+  const handleShare = (postId: string) => {
+    // Placeholder for share functionality
+    console.log("Share post:", postId);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Create Post */}
-      <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-xl p-6">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src="/mountain-climber-avatar.png" />
-            <AvatarFallback>YU</AvatarFallback>
-          </Avatar>
-          <Button
-            variant="outline"
-            className="flex-1 justify-start text-gray-200 bg-white/10 border-white/20 hover:bg-white/15"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Share your climbing adventure...
+      {/* Create Post Button */}
+      <Card>
+        <CardContent className="p-4">
+          <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+            ✏️ Share Your Adventure
           </Button>
-          <Button size="icon" variant="outline" className="bg-white/10 border-white/20 hover:bg-white/15">
-            <Camera className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Posts */}
+      {/* Posts Feed */}
       {posts.map((post) => (
-        <div key={post.id} className="backdrop-blur-md bg-white/20 border border-white/30 rounded-xl p-6 space-y-4">
-          {/* Post Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={post.user.avatar || "/placeholder.svg"} />
-                <AvatarFallback>
-                  {post.user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h4 className="font-semibold text-white">{post.user.name}</h4>
-                  <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                    Level {post.user.level}
-                  </Badge>
+        <Card key={post.id} className="overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Avatar>
+                  <AvatarImage
+                    src={post.author.avatar}
+                    alt={post.author.name}
+                  />
+                  <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-semibold text-white">
+                      {post.author.name}
+                    </h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {post.author.badge}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-400">{post.timestamp}</p>
                 </div>
-                <p className="text-sm text-gray-300">{post.timestamp}</p>
               </div>
             </div>
-          </div>
+          </CardHeader>
 
-          {/* Achievement Badge */}
-          {post.achievement && (
-            <div className="flex items-center space-x-2 p-3 rounded-lg bg-gradient-to-r from-emerald-500/20 to-orange-500/20 border border-emerald-500/30">
-              <div className="p-2 rounded-full bg-emerald-500/30">
-                {post.achievement.type === "summit" && <Mountain className="h-4 w-4 text-emerald-300" />}
-                {post.achievement.type === "distance" && <Trophy className="h-4 w-4 text-emerald-300" />}
-                {post.achievement.type === "elevation" && <Mountain className="h-4 w-4 text-emerald-300" />}
+          <CardContent className="pt-0">
+            {/* Activity Badge */}
+            {post.activity && (
+              <div className="mb-3">
+                <Badge
+                  variant="outline"
+                  className="mb-2 border-emerald-500/20 text-emerald-400"
+                >
+                  {post.activity.type === "climb" && (
+                    <>
+                      <Mountain className="w-3 h-3 mr-1" />
+                      Climbed {post.activity.mountain} •{" "}
+                      {post.activity.distance}km • {post.activity.elevation}m
+                      elevation
+                    </>
+                  )}
+                  {post.activity.type === "achievement" && (
+                    <>
+                      <Trophy className="w-3 h-3 mr-1" />
+                      Achievement: {post.activity.distance}km this month!
+                    </>
+                  )}
+                  {post.activity.type === "group" && (
+                    <>
+                      <Users className="w-3 h-3 mr-1" />
+                      Group Expedition to {post.activity.mountain}
+                    </>
+                  )}
+                </Badge>
               </div>
-              <div>
-                <p className="font-semibold text-emerald-300">{post.achievement.title}</p>
-                <p className="text-sm text-gray-300">{post.achievement.value}</p>
+            )}
+
+            {/* Post Content */}
+            <p className="text-white mb-3 leading-relaxed">{post.content}</p>
+
+            {/* Post Image */}
+            {post.image && (
+              <div className="mb-3 rounded-lg overflow-hidden">
+                <img
+                  src={post.image}
+                  alt="Post content"
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+            )}
+
+            {/* Location */}
+            {post.location && (
+              <div className="flex items-center text-sm text-gray-400 mb-3">
+                <MapPin className="w-4 h-4 mr-1" />
+                {post.location}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+              <div className="flex items-center space-x-6">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleLike(post.id)}
+                  className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                >
+                  <Heart className="w-4 h-4 mr-2" />
+                  {post.likes}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleComment(post.id)}
+                  className="text-gray-400 hover:text-blue-400 hover:bg-blue-500/10"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  {post.comments}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleShare(post.id)}
+                  className="text-gray-400 hover:text-green-400 hover:bg-green-500/10"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  {post.shares}
+                </Button>
               </div>
             </div>
-          )}
-
-          {/* Post Content */}
-          <p className="text-white leading-relaxed">{post.content}</p>
-
-          {/* Post Image */}
-          {post.image && (
-            <div className="rounded-lg overflow-hidden">
-              <img
-                src={post.image || "/placeholder.svg"}
-                alt="Post image"
-                className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-          )}
-
-          {/* Post Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/20">
-            <div className="flex items-center space-x-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleLike(post.id)}
-                className={`space-x-2 ${post.isLiked ? "text-red-400 hover:text-red-300" : "text-gray-300 hover:text-white"}`}
-              >
-                <Heart className={`h-4 w-4 ${post.isLiked ? "fill-current" : ""}`} />
-                <span>{post.likes}</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="space-x-2 text-gray-300 hover:text-white">
-                <MessageCircle className="h-4 w-4" />
-                <span>{post.comments}</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="space-x-2 text-gray-300 hover:text-white">
-                <Share2 className="h-4 w-4" />
-                <span>Share</span>
-              </Button>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ))}
+
+      {/* Load More Button */}
+      <div className="text-center">
+        <Button
+          variant="outline"
+          onClick={() => setLoading(true)}
+          disabled={loading}
+          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+        >
+          {loading ? "Loading..." : "Load More Posts"}
+        </Button>
+      </div>
     </div>
-  )
+  );
 }

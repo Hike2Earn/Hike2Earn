@@ -1,64 +1,73 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useHike2Earn } from "@/hooks/useHike2Earn"
-import { useWallet } from "./wallet-provider"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Wallet, Activity, Mountain, Trophy, RefreshCw, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useHike2Earn } from "@/hooks/useHike2Earn";
+import { useWallet } from "./wallet-provider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Wallet,
+  Activity,
+  Mountain,
+  Trophy,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
 
 export function ContractStatus() {
-  const { isConnected, address } = useWallet()
-  const { 
-    getCampaignCount, 
-    getMountainCount, 
+  const { isConnected, address } = useWallet();
+  const {
+    getCampaignCount,
+    getMountainCount,
     getAllCampaigns,
     getUserNFTs,
-    isLoading, 
-    error 
-  } = useHike2Earn()
+    isLoading,
+    error,
+  } = useHike2Earn();
 
   const [contractData, setContractData] = useState({
     campaignCount: 0,
     mountainCount: 0,
     campaigns: [] as any[],
     userNFTs: [] as number[],
-    lastUpdated: null as Date | null
-  })
+    lastUpdated: null as Date | null,
+  });
 
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadContractData = async () => {
-    if (!isConnected) return
-    
-    setIsRefreshing(true)
-    
+    if (!isConnected) return;
+
+    setIsRefreshing(true);
+
     try {
-      const [campaignCount, mountainCount, campaigns, nfts] = await Promise.all([
-        getCampaignCount(),
-        getMountainCount(),
-        getAllCampaigns(),
-        address ? getUserNFTs(address) : Promise.resolve([])
-      ])
+      const [campaignCount, mountainCount, campaigns, nfts] = await Promise.all(
+        [
+          getCampaignCount(),
+          getMountainCount(),
+          getAllCampaigns(),
+          address ? getUserNFTs(address) : Promise.resolve([]),
+        ]
+      );
 
       setContractData({
         campaignCount,
         mountainCount,
         campaigns,
         userNFTs: nfts,
-        lastUpdated: new Date()
-      })
+        lastUpdated: new Date(),
+      });
     } catch (error) {
-      console.error("Error loading contract data:", error)
+      console.error("Error loading contract data:", error);
     } finally {
-      setIsRefreshing(false)
+      setIsRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadContractData()
-  }, [isConnected, address])
+    loadContractData();
+  }, [isConnected, address]);
 
   if (!isConnected) {
     return (
@@ -79,7 +88,7 @@ export function ContractStatus() {
           </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -96,7 +105,9 @@ export function ContractStatus() {
               disabled={isRefreshing}
               className="h-6 w-6 p-0"
             >
-              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`}
+              />
             </Button>
           </CardTitle>
         </CardHeader>
@@ -110,7 +121,9 @@ export function ContractStatus() {
           <div className="text-xs text-muted-foreground mt-2">
             <div>Contract: 0xD9986...29570</div>
             {contractData.lastUpdated && (
-              <div>Updated: {contractData.lastUpdated.toLocaleTimeString()}</div>
+              <div>
+                Updated: {contractData.lastUpdated.toLocaleTimeString()}
+              </div>
             )}
           </div>
         </CardContent>
@@ -128,9 +141,7 @@ export function ContractStatus() {
           <div className="text-2xl font-bold text-primary">
             {isLoading ? "..." : contractData.campaignCount}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Active campaigns
-          </p>
+          <p className="text-xs text-muted-foreground">Active campaigns</p>
         </CardContent>
       </Card>
 
@@ -146,9 +157,7 @@ export function ContractStatus() {
           <div className="text-2xl font-bold text-secondary">
             {isLoading ? "..." : contractData.mountainCount}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Available peaks
-          </p>
+          <p className="text-xs text-muted-foreground">Available peaks</p>
         </CardContent>
       </Card>
 
@@ -164,9 +173,7 @@ export function ContractStatus() {
           <div className="text-2xl font-bold text-yellow-400">
             {isLoading ? "..." : contractData.userNFTs.length}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Climbing achievements
-          </p>
+          <p className="text-xs text-muted-foreground">Climbing achievements</p>
         </CardContent>
       </Card>
 
@@ -192,14 +199,26 @@ export function ContractStatus() {
           <CardContent>
             <div className="space-y-2">
               {contractData.campaigns.slice(0, 3).map((campaign, index) => (
-                <div key={campaign.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                <div
+                  key={campaign.id}
+                  className="flex items-center justify-between p-2 bg-white/5 rounded-lg"
+                >
                   <div>
-                    <div className="font-semibold text-sm">{campaign.name || `Campaign #${campaign.id}`}</div>
+                    <div className="font-semibold text-sm">
+                      {campaign.name || `Campaign #${campaign.id}`}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      Prize Pool: {campaign.prizePoolETH} ETH • Participants: {campaign.participantCount}
+                      Prize Pool: {campaign.prizePoolLSK} LSK • Participants:{" "}
+                      {campaign.participantCount}
                     </div>
                   </div>
-                  <Badge className={campaign.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                  <Badge
+                    className={
+                      campaign.isActive
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-gray-500/20 text-gray-400"
+                    }
+                  >
                     {campaign.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </div>
@@ -209,5 +228,5 @@ export function ContractStatus() {
         </Card>
       )}
     </div>
-  )
+  );
 }

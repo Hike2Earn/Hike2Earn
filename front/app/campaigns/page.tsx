@@ -1,49 +1,65 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { MountainBackground } from "@/components/mountain-background"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Mountain, Calendar, Users, Trophy, MapPin, Clock, Search, Plus, Wallet } from "lucide-react"
-import { CreateCampaignModal } from "@/components/create-campaign-modal"
-import { createCampaign } from "@/lib/campaign-utils"
-import { useHike2Earn } from "@/hooks/useHike2Earn"
-import { useWallet } from "@/components/wallet-provider"
-import { ContractStatus } from "@/components/contract-status"
-import Link from "next/link"
+import { useState, useEffect, useCallback } from "react";
+import { MountainBackground } from "@/components/mountain-background";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Mountain,
+  Calendar,
+  Users,
+  Trophy,
+  MapPin,
+  Clock,
+  Search,
+  Plus,
+  Wallet,
+} from "lucide-react";
+import { CreateCampaignModal } from "@/components/create-campaign-modal";
+import { createCampaign } from "@/lib/campaign-utils";
+import { useHike2Earn } from "@/hooks/useHike2Earn";
+import { useWallet } from "@/components/wallet-provider";
+import { ErrorBoundary, useErrorHandler } from "@/components/error-boundary";
+import {
+  NetworkSwitcher,
+  useNetworkStatus,
+} from "@/components/network-switcher";
+import { getNetworkDisplayInfo } from "@/lib/network-config";
+import Link from "next/link";
 
 interface Campaign {
-  id: string
-  title: string
-  description: string
-  type: "summit" | "cleanup" | "training" | "expedition"
-  difficulty: "beginner" | "intermediate" | "advanced" | "expert"
-  mountain: string
-  location: string
-  startDate: string
-  endDate: string
-  duration: string
-  participants: number
-  maxParticipants: number
-  reward: number
-  image: string
-  elevation: string
+  id: string;
+  title: string;
+  description: string;
+  type: "summit" | "cleanup" | "training" | "expedition";
+  difficulty: "beginner" | "intermediate" | "advanced" | "expert";
+  mountain: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  duration: string;
+  participants: number;
+  maxParticipants: number;
+  reward: number;
+  image: string;
+  elevation: string;
 }
 
 interface CreateCampaignData {
-  name: string
-  description: string
-  startDate: number
-  endDate: number
-  prizePoolETH: number
-  mountainIds?: number[]
+  name: string;
+  description: string;
+  startDate: number;
+  endDate: number;
+  prizePoolLSK: number;
+  mountainIds?: number[];
 }
 
 const allCampaigns: Campaign[] = [
   {
     id: "1",
     title: "Aconcagua Summit Expedition",
-    description: "Join us for an epic 14-day expedition to reach the highest peak in the Americas at 6,962m. This challenging expedition requires advanced mountaineering skills and excellent physical condition.",
+    description:
+      "Join us for an epic 14-day expedition to reach the highest peak in the Americas at 6,962m. This challenging expedition requires advanced mountaineering skills and excellent physical condition.",
     type: "summit",
     difficulty: "expert",
     mountain: "Aconcagua",
@@ -55,14 +71,15 @@ const allCampaigns: Campaign[] = [
     maxParticipants: 12,
     reward: 2500,
     image: "/campaigns/aconcagua.jpg",
-    elevation: "6,962m"
+    elevation: "6,962m",
   },
   {
-    id: "2", 
+    id: "2",
     title: "Cerro Plomo Day Hike",
-    description: "Perfect training hike for intermediate climbers with stunning views of Santiago. Experience high altitude hiking in a safe, guided environment.",
+    description:
+      "Perfect training hike for intermediate climbers with stunning views of Santiago. Experience high altitude hiking in a safe, guided environment.",
     type: "training",
-    difficulty: "intermediate", 
+    difficulty: "intermediate",
     mountain: "Cerro Plomo",
     location: "Santiago, Chile",
     startDate: "2025-01-20",
@@ -72,29 +89,31 @@ const allCampaigns: Campaign[] = [
     maxParticipants: 25,
     reward: 350,
     image: "/campaigns/cerro-plomo.jpg",
-    elevation: "5,424m"
+    elevation: "5,424m",
   },
   {
     id: "3",
     title: "Andes Trail Clean-up",
-    description: "Help preserve our beautiful mountain trails while enjoying nature and earning rewards. Perfect for beginners and families. All equipment provided.",
+    description:
+      "Help preserve our beautiful mountain trails while enjoying nature and earning rewards. Perfect for beginners and families. All equipment provided.",
     type: "cleanup",
     difficulty: "beginner",
     mountain: "Various Trails",
     location: "Cordillera Central",
     startDate: "2025-01-25",
-    endDate: "2025-01-25", 
+    endDate: "2025-01-25",
     duration: "6 hours",
     participants: 32,
     maxParticipants: 50,
     reward: 200,
     image: "/campaigns/trail-cleanup.jpg",
-    elevation: "2,100m"
+    elevation: "2,100m",
   },
   {
     id: "4",
     title: "Volcán Villarrica Trek",
-    description: "Experience the thrill of climbing an active volcano with professional guides. Ice axe and crampon training included.",
+    description:
+      "Experience the thrill of climbing an active volcano with professional guides. Ice axe and crampon training included.",
     type: "summit",
     difficulty: "advanced",
     mountain: "Volcán Villarrica",
@@ -106,12 +125,13 @@ const allCampaigns: Campaign[] = [
     maxParticipants: 15,
     reward: 800,
     image: "/campaigns/volcan-villarrica.jpg",
-    elevation: "2,847m"
+    elevation: "2,847m",
   },
   {
     id: "5",
     title: "Patagonia Base Camp Trek",
-    description: "Multi-day trekking expedition through Torres del Paine with professional guides and full camping equipment provided.",
+    description:
+      "Multi-day trekking expedition through Torres del Paine with professional guides and full camping equipment provided.",
     type: "expedition",
     difficulty: "advanced",
     mountain: "Torres del Paine",
@@ -123,12 +143,13 @@ const allCampaigns: Campaign[] = [
     maxParticipants: 12,
     reward: 1200,
     image: "/campaigns/torres-del-paine.jpg",
-    elevation: "2,500m"
+    elevation: "2,500m",
   },
   {
     id: "6",
     title: "Beginner Mountain Skills Course",
-    description: "Learn essential mountain skills including navigation, safety, and basic climbing techniques in a safe environment.",
+    description:
+      "Learn essential mountain skills including navigation, safety, and basic climbing techniques in a safe environment.",
     type: "training",
     difficulty: "beginner",
     mountain: "Cerro San Cristóbal",
@@ -140,137 +161,203 @@ const allCampaigns: Campaign[] = [
     maxParticipants: 20,
     reward: 150,
     image: "/campaigns/skills-course.jpg",
-    elevation: "880m"
-  }
-]
+    elevation: "880m",
+  },
+];
 
 const typeColors = {
   summit: "bg-primary/20 text-primary border-primary/30",
   cleanup: "bg-green-500/20 text-green-400 border-green-500/30",
   training: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  expedition: "bg-purple-500/20 text-purple-400 border-purple-500/30"
-}
+  expedition: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+};
 
 const difficultyColors = {
   beginner: "bg-green-500/20 text-green-400 border-green-500/30",
   intermediate: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   advanced: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  expert: "bg-red-500/20 text-red-400 border-red-500/30"
-}
+  expert: "bg-red-500/20 text-red-400 border-red-500/30",
+};
 
-export default function CampaignsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [difficultyFilter, setDifficultyFilter] = useState<string>("all")
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [userCampaigns, setUserCampaigns] = useState<Campaign[]>([])
-  const [contractCampaigns, setContractCampaigns] = useState<Campaign[]>([])
-  
-  const { isConnected } = useWallet()
-  const { 
-    getAllCampaigns, 
+function CampaignsPageContent() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [userCampaigns, setUserCampaigns] = useState<Campaign[]>([]);
+  const [contractCampaigns, setContractCampaigns] = useState<Campaign[]>([]);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
+
+  const { isConnected } = useWallet();
+  const {
+    getAllCampaigns,
     isLoading: contractLoading,
     error: contractError,
-    contractHealthy
-  } = useHike2Earn()
+    contractHealthy,
+  } = useHike2Earn();
+  const { chainId, needsSwitch, isSupported } = useNetworkStatus();
 
-  // Load campaigns from contract
-  useEffect(() => {
-    const loadContractCampaigns = async () => {
-      if (isConnected && contractHealthy) {
-        console.log("📊 Loading campaigns from contract...")
-        try {
-          const campaigns = await getAllCampaigns()
-          console.log("📊 Received campaigns from contract:", campaigns.length)
-          
-          // Convert contract campaigns to UI format
-          const formattedCampaigns: Campaign[] = campaigns.map((campaign) => ({
-            id: `contract-${campaign.id}`,
-            title: campaign.name || `Campaign #${campaign.id}`,
-            description: `Smart contract campaign with ${campaign.prizePoolETH} LSK prize pool. Join by completing mountain climbs and earning NFTs!`,
-            type: "summit" as const,
-            difficulty: "intermediate" as const,
-            mountain: "Blockchain Mountain",
-            location: "Lisk Network",
-            startDate: new Date(campaign.startDate * 1000).toISOString().split('T')[0],
-            endDate: new Date(campaign.endDate * 1000).toISOString().split('T')[0],
-            duration: Math.ceil((campaign.endDate - campaign.startDate) / (24 * 60 * 60)) + " days",
-            participants: campaign.participantCount,
-            maxParticipants: Math.max(campaign.participantCount + 10, 20), // Estimate
-            reward: parseFloat(campaign.prizePoolETH) * 1000, // Convert LSK to HIKE tokens (example rate)
-            image: "/campaigns/contract-campaign.jpg",
-            elevation: "Variable"
-          }))
-          
-          setContractCampaigns(formattedCampaigns)
-          console.log("✅ Contract campaigns loaded successfully:", formattedCampaigns.length)
-        } catch (error) {
-          console.error("❌ Error loading contract campaigns:", error)
-        }
-      } else if (isConnected && !contractHealthy) {
-        console.warn("⚠️ Contract not healthy, skipping campaign loading")
-        setContractCampaigns([])
-      } else {
-        console.log("ℹ️ Wallet not connected, clearing contract campaigns")
-        setContractCampaigns([])
-      }
+
+
+
+  const { handleError } = useErrorHandler();
+
+  // Memoize the campaign loading function to avoid dependency issues
+  const loadContractCampaigns = useCallback(async () => {
+    // Prevent concurrent loading
+    if (isLoadingCampaigns) {
+      return;
     }
 
-    loadContractCampaigns()
-  }, [isConnected, contractHealthy, getAllCampaigns])
+    if (isConnected && contractHealthy && isSupported && !needsSwitch) {
+      setIsLoadingCampaigns(true);
+
+      try {
+        const campaigns = await getAllCampaigns();
+
+        // Convert contract campaigns to UI format
+        const formattedCampaigns: Campaign[] = campaigns.map((campaign) => ({
+          id: `contract-${campaign.id}`,
+          title: campaign.name || `Campaign #${campaign.id}`,
+          description: `Smart contract campaign with ${campaign.prizePoolLSK} LSK prize pool. Join by completing mountain climbs and earning NFTs!`,
+          type: "summit" as const,
+          difficulty: "intermediate" as const,
+          mountain: "Blockchain Mountain",
+          location: "Lisk Network",
+          startDate: new Date(campaign.startDate * 1000)
+            .toISOString()
+            .split("T")[0],
+          endDate: new Date(campaign.endDate * 1000)
+            .toISOString()
+            .split("T")[0],
+          duration:
+            Math.ceil(
+              (campaign.endDate - campaign.startDate) / (24 * 60 * 60)
+            ) + " days",
+          participants: campaign.participantCount,
+          maxParticipants: Math.max(campaign.participantCount + 10, 20), // Estimate
+          reward: parseFloat(campaign.prizePoolLSK) * 1000, // Convert LSK to HIKE tokens (example rate)
+          image: "/campaigns/contract-campaign.jpg",
+          elevation: "Variable",
+        }));
+
+        setContractCampaigns(formattedCampaigns);
+      } catch (error) {
+        setContractCampaigns([]); // Clear campaigns on error
+        if (error instanceof Error) {
+          handleError(error);
+        }
+      } finally {
+        setIsLoadingCampaigns(false);
+      }
+    } else {
+      setContractCampaigns([]);
+    }
+  }, [
+    isConnected,
+    contractHealthy,
+    isSupported,
+    needsSwitch,
+    chainId,
+    getAllCampaigns,
+    handleError,
+    isLoadingCampaigns,
+    contractError,
+  ]);
+
+  // Load campaigns from contract with proper dependency management
+  useEffect(() => {
+    loadContractCampaigns();
+  }, [loadContractCampaigns]); // Now using the memoized function
 
   // Combine default campaigns, user-created campaigns, and contract campaigns
-  const allAvailableCampaigns = [...allCampaigns, ...userCampaigns, ...contractCampaigns]
+  const allAvailableCampaigns = [
+    ...allCampaigns,
+    ...userCampaigns,
+    ...contractCampaigns,
+  ];
 
-  const filteredCampaigns = allAvailableCampaigns.filter(campaign => {
-    const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.mountain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.location.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesType = typeFilter === "all" || campaign.type === typeFilter
-    const matchesDifficulty = difficultyFilter === "all" || campaign.difficulty === difficultyFilter
+  const filteredCampaigns = allAvailableCampaigns.filter((campaign) => {
+    const matchesSearch =
+      campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.mountain.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesType && matchesDifficulty
-  })
+    const matchesType = typeFilter === "all" || campaign.type === typeFilter;
+    const matchesDifficulty =
+      difficultyFilter === "all" || campaign.difficulty === difficultyFilter;
 
-  const handleCreateCampaign = async (campaignData: CreateCampaignData): Promise<{success: boolean, campaignId?: string, error?: string}> => {
+    return matchesSearch && matchesType && matchesDifficulty;
+  });
+
+  const handleCreateCampaign = async (
+    campaignData: CreateCampaignData
+  ): Promise<{ success: boolean; campaignId?: string; error?: string }> => {
     try {
+      // Check if we're on the right network
+      if (!isSupported || needsSwitch) {
+        throw new Error(
+          "Please switch to Lisk Sepolia network before creating campaigns"
+        );
+      }
+
+      // Check if contract is healthy
+      if (!contractHealthy) {
+        throw new Error(
+          "Smart contract not available. Please check your connection."
+        );
+      }
+
       // Use the campaign utilities for validation and creation
-      const result = await createCampaign(campaignData)
-      
+      const result = await createCampaign(campaignData);
+
       if (!result.success) {
-        throw new Error(result.error || "Failed to create campaign")
+        console.error("❌ Campaign creation failed:", result.error);
+        throw new Error(result.error || "Failed to create campaign");
       }
 
       // Create local campaign representation for UI
       const newCampaign: Campaign = {
-        id: result.campaignId || `user-${Date.now()}`,
+        id: `user-${result.campaignId || Date.now()}`,
         title: campaignData.name,
         description: campaignData.description,
         type: "summit", // Default type, could be derived from data
         difficulty: "intermediate", // Default difficulty, could be derived from mountain selection
-        mountain: (campaignData.mountainIds?.length || 0) > 0 ? "Multiple Mountains" : "Custom Route",
+        mountain:
+          (campaignData.mountainIds?.length || 0) > 0
+            ? "Multiple Mountains"
+            : "Custom Route",
         location: "User Created",
-        startDate: new Date(campaignData.startDate * 1000).toISOString().split('T')[0],
-        endDate: new Date(campaignData.endDate * 1000).toISOString().split('T')[0],
-        duration: Math.ceil((campaignData.endDate - campaignData.startDate) / (24 * 60 * 60)) + " days",
+        startDate: new Date(campaignData.startDate * 1000)
+          .toISOString()
+          .split("T")[0],
+        endDate: new Date(campaignData.endDate * 1000)
+          .toISOString()
+          .split("T")[0],
+        duration:
+          Math.ceil(
+            (campaignData.endDate - campaignData.startDate) / (24 * 60 * 60)
+          ) + " days",
         participants: 0,
         maxParticipants: 20, // Default max participants
-        reward: Math.floor(campaignData.prizePoolETH * 1000), // Convert ETH to HIKE tokens (simplified)
+        reward: Math.floor(campaignData.prizePoolLSK * 1000), // Convert LSK to HIKE tokens (simplified)
         image: "/campaigns/user-created.jpg",
-        elevation: "Variable"
-      }
-      
-      setUserCampaigns(prev => [newCampaign, ...prev])
-      
-      return { success: true, campaignId: result.campaignId }
-      
+        elevation: "Variable",
+      };
+
+      setUserCampaigns((prev) => [newCampaign, ...prev]);
+
+      // Reload contract campaigns to show the new one
+      setTimeout(() => loadContractCampaigns(), 2000);
+
+      return { success: true, campaignId: result.campaignId };
     } catch (error) {
-      console.error("Failed to create campaign:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      return { success: false, error: errorMessage }
+      console.error("❌ Failed to create campaign:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return { success: false, error: errorMessage };
     }
-  }
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
@@ -283,76 +370,196 @@ export default function CampaignsPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Mountain className="w-8 h-8 text-primary" />
-                <h1 className="text-3xl font-bold text-gradient">Mountain Campaigns</h1>
+                <h1 className="text-3xl font-bold text-gradient">
+                  Mountain Campaigns
+                </h1>
               </div>
               <div className="flex items-center gap-3">
                 {/* Contract Status */}
-                
+
                 <Button
                   onClick={() => setIsCreateModalOpen(true)}
                   className="bg-gradient-to-r from-emerald-500 to-orange-500 hover:from-emerald-600 hover:to-orange-600 disabled:opacity-50"
                   disabled={!isConnected || !contractHealthy}
                   title={
-                    !isConnected ? "Connect your wallet to create campaigns" :
-                    !contractHealthy ? "Smart contract not available" :
-                    "Create a new campaign"
+                    !isConnected
+                      ? "Connect your wallet to explore partnership opportunities"
+                      : !contractHealthy
+                      ? "Smart contract not available"
+                      : "Create your own mountain climbing campaign"
                   }
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  {!isConnected ? "Connect Wallet" :
-                   !contractHealthy ? "Contract Unavailable" :
-                   "Create Campaign"}
+                  {!isConnected
+                    ? "Connect Wallet"
+                    : !contractHealthy
+                    ? "Contract Unavailable"
+                    : "Create Campaign"}
                 </Button>
               </div>
             </div>
             <p className="text-muted-foreground max-w-2xl">
-              Join exciting mountaineering campaigns, help preserve our trails, or improve your skills. 
-              Create your own campaigns and earn HIKE tokens and exclusive NFTs while exploring the most beautiful peaks in the Andes.
+              Join exciting mountaineering campaigns, help preserve our trails,
+              or improve your skills. Create your own campaigns and earn HIKE
+              tokens and exclusive NFTs while exploring the most beautiful peaks
+              in the Andes.
             </p>
-            
-            {/* Contract Status Info */}
+
+            {/* Campaign Creation Info */}
             {isConnected && contractHealthy && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
+              <div className="mt-4 p-4 bg-gradient-to-r from-emerald-500/10 to-orange-500/10 border border-emerald-500/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-sm font-semibold text-green-400">Smart Contract Active</span>
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="text-sm font-medium text-emerald-400">
+                    🚀 Create Your Campaign
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Connected to Hike2Earn contract: <code className="text-xs bg-white/10 px-2 py-1 rounded">0xD9986E17F96e99D11330F72F90f78982b8F29570</code>
+                  Anyone can create mountain climbing campaigns! Set up your own
+                  adventure, invite climbers, and earn rewards. Our team reviews
+                  all campaigns to ensure quality and safety.
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Showing {contractCampaigns.length} contract campaigns and {allCampaigns.length} demo campaigns
-                  {contractLoading && <span className="ml-2 text-blue-400">Loading...</span>}
-                </p>
+
+
               </div>
             )}
 
-            {/* Contract Error */}
-            {isConnected && !contractHealthy && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-red-400 rounded-full" />
-                  <span className="text-sm font-semibold text-red-400">Smart Contract Issue</span>
+            {/* Contract Status Info */}
+            {isConnected && contractHealthy && isSupported && !needsSwitch && (
+              <div className="mt-3 p-2.5 bg-green-500/5 border border-green-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
+                  <div>
+                    <span className="text-xs font-medium text-green-400">
+                      ✅ Smart Contract Active
+                    </span>
+                    <p className="text-xs text-muted-foreground/80 mt-0.5">
+                      Connected to Hike2Earn contract on{" "}
+                      {chainId
+                        ? getNetworkDisplayInfo(chainId).name
+                        : "Lisk Sepolia"}
+                    </p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">
+                      {contractCampaigns.length > 0 ? (
+                        <>
+                          <span className="text-green-400 font-medium">
+                            🎉 {contractCampaigns.length} live campaigns
+                          </span>{" "}
+                          from blockchain + {allCampaigns.length} demo campaigns
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-yellow-400">
+                            ℹ️ No campaigns yet
+                          </span>{" "}
+                          in contract + {allCampaigns.length} demo campaigns
+                        </>
+                      )}
+                      {contractLoading && (
+                        <span className="ml-1 text-blue-400">Loading...</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-red-300">
-                  {contractError || "Unable to connect to smart contract. Some features may be limited."}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Showing {allCampaigns.length} demo campaigns only
-                </p>
               </div>
             )}
-            
+
+            {/* Contract Status Info - Network Wrong */}
+            {isConnected &&
+              contractHealthy &&
+              (!isSupported || needsSwitch) && (
+                <div className="mt-3 p-2.5 bg-amber-500/5 border border-amber-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
+                    <div>
+                      <span className="text-xs font-medium text-amber-400">
+                        🌐 Network Switch Required
+                      </span>
+                      <p className="text-xs text-muted-foreground/80 mt-0.5">
+                        Switch to Lisk Sepolia to access live blockchain
+                        campaigns
+                      </p>
+                      <p className="text-xs text-muted-foreground/80 mt-1">
+                        Currently showing {allCampaigns.length} demo campaigns
+                        only
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            {/* Contract Error */}
+            {isConnected && !contractHealthy && (
+              <div className="mt-3 p-2.5 bg-red-500/5 border border-red-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-red-400 rounded-full flex-shrink-0" />
+                  <div>
+                    <span className="text-xs font-medium text-red-400">
+                      Smart Contract Issue
+                    </span>
+                    <p className="text-xs text-red-300/90 mt-0.5">
+                      {contractError ||
+                        "Unable to connect to smart contract. Some features may be limited."}
+                    </p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">
+                      Showing {allCampaigns.length} demo campaigns only
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Connection Prompt */}
             {!isConnected && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wallet className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-semibold text-yellow-400">Wallet Not Connected</span>
+              <div className="mt-3 p-2.5 bg-blue-500/5 border border-blue-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-1.5">
+                  <Wallet className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                  <div>
+                    <span className="text-xs font-medium text-blue-400">
+                      Wallet Not Connected
+                    </span>
+                    <p className="text-xs text-muted-foreground/80 mt-0.5">
+                      Connect your wallet to view live contract campaigns and
+                      create new ones.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Connect your wallet to view live contract campaigns and create new ones.
-                </p>
+              </div>
+            )}
+
+            {/* Network Switcher - show prominently when wrong network */}
+            {isConnected && (needsSwitch || (!isSupported && chainId)) && (
+              <div className="mt-3">
+                <NetworkSwitcher
+                  currentChainId={chainId || undefined}
+                  onNetworkChanged={() => {
+                    // Reload contract campaigns after network switch
+                    setTimeout(() => loadContractCampaigns(), 1000);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Network Status Warning */}
+            {isConnected && chainId && !isSupported && (
+              <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                  <div>
+                    <span className="text-sm font-medium text-amber-400">
+                      Network Status
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Connected to {getNetworkDisplayInfo(chainId).name} (Chain
+                      ID: {chainId}). Smart contract features require Lisk
+                      Sepolia network (Chain ID: 4202).
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <strong>Debug Info:</strong> Expected: 4202, Current:{" "}
+                      {chainId}, Match: {chainId === 4202 ? "Yes" : "No"}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -400,14 +607,6 @@ export default function CampaignsPage() {
             </div>
           </div>
 
-          {/* Contract Status (Debug Component - Remove in Production) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Debug: Contract Status</h2>
-              <ContractStatus />
-            </div>
-          )}
-
           {/* Campaigns Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCampaigns.map((campaign) => (
@@ -417,27 +616,33 @@ export default function CampaignsPage() {
                   <div className="relative h-48 overflow-hidden">
                     <div className="w-full h-full bg-gradient-to-br from-primary/30 to-secondary/20" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    
+
                     {/* Badges */}
                     <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
                       <Badge className={`text-xs ${typeColors[campaign.type]}`}>
-                        {campaign.type.charAt(0).toUpperCase() + campaign.type.slice(1)}
+                        {campaign.type.charAt(0).toUpperCase() +
+                          campaign.type.slice(1)}
                       </Badge>
-                      <Badge className={`text-xs ${difficultyColors[campaign.difficulty]}`}>
-                        {campaign.difficulty.charAt(0).toUpperCase() + campaign.difficulty.slice(1)}
+                      <Badge
+                        className={`text-xs ${
+                          difficultyColors[campaign.difficulty]
+                        }`}
+                      >
+                        {campaign.difficulty.charAt(0).toUpperCase() +
+                          campaign.difficulty.slice(1)}
                       </Badge>
-                      {campaign.id.startsWith('contract-') && (
+                      {campaign.id.startsWith("contract-") && (
                         <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
                           🔗 On-Chain
                         </Badge>
                       )}
-                      {campaign.id.startsWith('user-') && (
+                      {campaign.id.startsWith("user-") && (
                         <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
                           👤 User Created
                         </Badge>
                       )}
                     </div>
-                    
+
                     {/* Mountain info overlay */}
                     <div className="absolute bottom-3 left-3 text-white">
                       <h4 className="font-semibold">{campaign.mountain}</h4>
@@ -466,11 +671,16 @@ export default function CampaignsPage() {
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Users className="w-4 h-4" />
-                        <span>{campaign.participants}/{campaign.maxParticipants} joined</span>
+                        <span>
+                          {campaign.participants}/{campaign.maxParticipants}{" "}
+                          joined
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-secondary">
                         <Trophy className="w-4 h-4" />
-                        <span className="font-semibold">{campaign.reward} HIKE</span>
+                        <span className="font-semibold">
+                          {campaign.reward} HIKE
+                        </span>
                       </div>
                     </div>
 
@@ -478,25 +688,35 @@ export default function CampaignsPage() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                       <Calendar className="w-4 h-4" />
                       <span>
-                        {new Date(campaign.startDate).toLocaleDateString()} 
-                        {campaign.startDate !== campaign.endDate && 
-                          ` - ${new Date(campaign.endDate).toLocaleDateString()}`
-                        }
+                        {new Date(campaign.startDate).toLocaleDateString()}
+                        {campaign.startDate !== campaign.endDate &&
+                          ` - ${new Date(
+                            campaign.endDate
+                          ).toLocaleDateString()}`}
                       </span>
                     </div>
 
                     {/* Participants Progress */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Spots Available</span>
+                        <span className="text-muted-foreground">
+                          Spots Available
+                        </span>
                         <span className="font-semibold">
-                          {campaign.maxParticipants - campaign.participants} remaining
+                          {campaign.maxParticipants - campaign.participants}{" "}
+                          remaining
                         </span>
                       </div>
                       <div className="w-full bg-muted/30 rounded-full h-2">
                         <div
                           className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${(campaign.participants / campaign.maxParticipants) * 100}%` }}
+                          style={{
+                            width: `${
+                              (campaign.participants /
+                                campaign.maxParticipants) *
+                              100
+                            }%`,
+                          }}
                         />
                       </div>
                     </div>
@@ -512,13 +732,14 @@ export default function CampaignsPage() {
               <Mountain className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
               <p className="text-muted-foreground">
-                Try adjusting your filters or search terms to find more campaigns.
+                Try adjusting your filters or search terms to find more
+                campaigns.
               </p>
             </div>
           )}
         </main>
       </div>
-      
+
       {/* Create Campaign Modal */}
       <CreateCampaignModal
         isOpen={isCreateModalOpen}
@@ -526,5 +747,18 @@ export default function CampaignsPage() {
         onCreateCampaign={handleCreateCampaign}
       />
     </div>
-  )
+  );
+}
+
+export default function CampaignsPage() {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error("🚨 Campaign page error:", error);
+        console.error("🚨 Error info:", errorInfo);
+      }}
+    >
+      <CampaignsPageContent />
+    </ErrorBoundary>
+  );
 }

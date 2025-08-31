@@ -1,102 +1,184 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { useWallet } from "./wallet-provider"
-import { Wallet, ChevronDown, Copy, ExternalLink, LogOut } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
-import { cn } from "@/lib/utils"
-import { LISK_NETWORK_CONFIG } from "@/lib/web3"
+import { Button } from "@/components/ui/button";
+import { useWallet } from "./wallet-provider";
+import { Wallet, ChevronDown, Copy, ExternalLink, LogOut } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { LISK_NETWORK_CONFIG } from "@/lib/web3";
+import {
+  diagnoseWalletEnvironment,
+  handleMultipleWalletError,
+} from "@/lib/wallet-utils";
 
 // Utility function to format numbers with commas
 const formatNumber = (num: string | number): string => {
-  const numValue = typeof num === 'string' ? parseFloat(num) : num
-  if (isNaN(numValue)) return '0'
-  
+  const numValue = typeof num === "string" ? parseFloat(num) : num;
+  if (isNaN(numValue)) return "0";
+
   // Format with commas and up to 2 decimal places, but remove unnecessary zeros
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2
-  }).format(numValue)
-}
+    maximumFractionDigits: 2,
+  }).format(numValue);
+};
 
 // Utility function to format wallet address
 const formatAddress = (address: string): string => {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
 
 export function WalletButton() {
-  const { isConnected, address, hikeBalance, connectWallet, disconnectWallet, isLoading, error } = useWallet()
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const {
+    isConnected,
+    address,
+    hikeBalance,
+    connectWallet,
+    disconnectWallet,
+    isLoading,
+    error,
+  } = useWallet();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleConnectWallet = async () => {
-    console.log("🔘 Connect Wallet button clicked")
-    console.log("📊 Current wallet state:", { isConnected, address, hikeBalance, isLoading, error })
-    
-    try {
-      await connectWallet()
-    } catch (err) {
-      console.error("Button click error:", err)
-    }
-  }
+    console.log("🔘 Connect Wallet button clicked");
+    console.log("📊 Current wallet state:", {
+      isConnected,
+      address,
+      hikeBalance,
+      isLoading,
+      error,
+    });
 
+    try {
+      // Pre-diagnostic: Check for multiple wallet extensions
+      console.log("🔍 Running pre-connection diagnostic...");
+      const diagnostic = diagnoseWalletEnvironment();
+
+      if (diagnostic.multipleProvidersDetected) {
+        console.warn(
+          "🚨 Multiple wallet extensions detected before connection attempt"
+        );
+
+        // Show a helpful warning before attempting connection
+        const shouldContinue = window.confirm(
+          `Multiple wallet extensions detected (${diagnostic.providers.length} total).\n\n` +
+            `This may cause connection issues. It's recommended to disable all wallet extensions except the one you want to use.\n\n` +
+            `Continue anyway?`
+        );
+
+        if (!shouldContinue) {
+          return;
+        }
+      }
+
+      await connectWallet();
+    } catch (err: any) {
+      console.error("Button click error:", err);
+
+      // Enhanced error handling for multiple wallet issues
+      if (
+        err.message?.includes("Unexpected error") ||
+        err.message?.includes("selectExtension")
+      ) {
+        const detailedError = handleMultipleWalletError(err);
+        alert("Wallet Connection Issue\n\n" + detailedError);
+      }
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const copyAddress = async () => {
     if (address) {
-      await navigator.clipboard.writeText(address)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-  }
+  };
 
   const openInExplorer = () => {
     if (address) {
-      window.open(`${LISK_NETWORK_CONFIG.blockExplorer}/address/${address}`, "_blank")
+      window.open(
+        `${LISK_NETWORK_CONFIG.blockExplorer}/address/${address}`,
+        "_blank"
+      );
     }
-  }
+  };
 
   if (!isConnected) {
-    const hasError = error !== null
-    const buttonColor = hasError ? '#dc2626' : (isLoading ? '#f59e0b' : '#2563eb')
-    const hoverColor = hasError ? '#b91c1c' : (isLoading ? '#d97706' : '#1d4ed8')
-    const borderColor = hasError ? '#ef4444' : (isLoading ? '#f59e0b' : '#3b82f6')
-    
+    const hasError = error !== null;
+    const isNetworkWarning =
+      error && (error.includes("demo mode") || error.includes("Wrong network"));
+    const buttonColor =
+      hasError && !isNetworkWarning
+        ? "#dc2626"
+        : isLoading
+        ? "#f59e0b"
+        : "#2563eb";
+    const hoverColor =
+      hasError && !isNetworkWarning
+        ? "#b91c1c"
+        : isLoading
+        ? "#d97706"
+        : "#1d4ed8";
+    const borderColor =
+      hasError && !isNetworkWarning
+        ? "#ef4444"
+        : isLoading
+        ? "#f59e0b"
+        : "#3b82f6";
+
     return (
       <Button
         onClick={handleConnectWallet}
         disabled={isLoading}
         className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-all text-white shadow-lg min-w-[140px] ${
-          hasError ? 'bg-red-600 hover:bg-red-700 border-red-500' :
-          isLoading ? 'bg-amber-500 hover:bg-amber-600 border-amber-400' :
-          'bg-blue-600 hover:bg-blue-700 border-blue-500'
+          hasError && !isNetworkWarning
+            ? "bg-red-600 hover:bg-red-700 border-red-500"
+            : isLoading
+            ? "bg-amber-500 hover:bg-amber-600 border-amber-400"
+            : "bg-blue-600 hover:bg-blue-700 border-blue-500"
         }`}
-        style={{ 
-          backgroundColor: buttonColor, 
-          color: 'white',
+        style={{
+          backgroundColor: buttonColor,
+          color: "white",
           border: `1px solid ${borderColor}`,
-          minHeight: '40px'
+          minHeight: "40px",
         }}
-        title={hasError ? `Error: ${error}` : undefined}
+        title={
+          hasError
+            ? isNetworkWarning
+              ? `Network Notice: ${error}`
+              : `Error: ${error}`
+            : undefined
+        }
       >
         <Wallet className="w-4 h-4" />
         <span className="text-sm font-semibold">
-          {isLoading ? "Connecting..." : hasError ? "Try Again" : "Connect Wallet"}
+          {isLoading
+            ? "Connecting..."
+            : hasError && !isNetworkWarning
+            ? "Try Again"
+            : "Connect Wallet"}
         </span>
       </Button>
-    )
+    );
   }
 
   return (
@@ -104,21 +186,23 @@ export function WalletButton() {
       <Button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 border border-green-500 rounded-lg transition-all text-white shadow-lg min-w-[140px]"
-        style={{ 
-          backgroundColor: '#16a34a', 
-          color: 'white',
-          border: '1px solid #22c55e',
-          minHeight: '40px'
+        style={{
+          backgroundColor: "#16a34a",
+          color: "white",
+          border: "1px solid #22c55e",
+          minHeight: "40px",
         }}
       >
         <Wallet className="w-4 h-4 text-white" />
         <span className="text-sm font-semibold">
           {formatNumber(hikeBalance)} HIKE
         </span>
-        <ChevronDown className={cn(
-          "w-3 h-3 transition-transform text-white",
-          isDropdownOpen && "rotate-180"
-        )} />
+        <ChevronDown
+          className={cn(
+            "w-3 h-3 transition-transform text-white",
+            isDropdownOpen && "rotate-180"
+          )}
+        />
       </Button>
 
       {/* Dropdown Menu */}
@@ -134,9 +218,7 @@ export function WalletButton() {
                 <div className="text-sm font-semibold text-white">
                   {formatAddress(address!)}
                 </div>
-                <div className="text-xs text-green-400">
-                  Connected to Lisk
-                </div>
+                <div className="text-xs text-green-400">Connected to Lisk</div>
               </div>
             </div>
 
@@ -159,7 +241,7 @@ export function WalletButton() {
                 <Copy className="w-4 h-4 mr-2" />
                 {copied ? "Copied!" : "Copy Address"}
               </Button>
-              
+
               <Button
                 onClick={openInExplorer}
                 variant="ghost"
@@ -169,9 +251,9 @@ export function WalletButton() {
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View in Explorer
               </Button>
-              
+
               <div className="border-t border-white/10 my-2"></div>
-              
+
               <Button
                 onClick={disconnectWallet}
                 variant="ghost"
@@ -190,10 +272,12 @@ export function WalletButton() {
       {copied && (
         <div className="fixed top-4 right-4 z-50">
           <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 backdrop-blur-md">
-            <div className="text-sm text-green-200">Address copied to clipboard!</div>
+            <div className="text-sm text-green-200">
+              Address copied to clipboard!
+            </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
