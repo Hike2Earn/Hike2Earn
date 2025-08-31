@@ -1,33 +1,33 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Trophy, Clock, Users, Zap } from "lucide-react"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Clock, Users, Zap } from "lucide-react";
 
 export function ChallengeWidget() {
   const [timeLeft, setTimeLeft] = useState({
     days: 2,
     hours: 14,
     minutes: 32,
-  })
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1 }
+          return { ...prev, minutes: prev.minutes - 1 };
         } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59 }
+          return { ...prev, hours: prev.hours - 1, minutes: 59 };
         } else if (prev.days > 0) {
-          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59 }
+          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59 };
         }
-        return prev
-      })
-    }, 60000) // Update every minute
+        return prev;
+      });
+    }, 60000); // Update every minute
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl h-full min-h-[240px]">
@@ -37,7 +37,10 @@ export function ChallengeWidget() {
             <Trophy className="w-5 h-5 text-secondary" />
             Active Challenge
           </div>
-          <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20">
+          <Badge
+            variant="outline"
+            className="bg-secondary/10 text-secondary border-secondary/20"
+          >
             Featured
           </Badge>
         </div>
@@ -46,7 +49,21 @@ export function ChallengeWidget() {
       <div className="px-6 pb-6 space-y-4">
         {/* Challenge Image */}
         <div className="relative h-32 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
-          <img src="/mountain-peak-challenge.png" alt="Summit Challenge" className="w-full h-full object-cover" />
+          <img
+            src="/cerros/cerroAconcagua.jpg"
+            alt="Mountain Summit Challenge"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error(
+                "Failed to load challenge image:",
+                e.currentTarget.src
+              );
+              e.currentTarget.style.display = "none";
+            }}
+            onLoad={() => {
+              console.log("Challenge image loaded successfully");
+            }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
           <div className="absolute bottom-3 left-3 text-white">
             <h3 className="font-semibold">Summit Challenge</h3>
@@ -107,5 +124,5 @@ export function ChallengeWidget() {
         </Button>
       </div>
     </div>
-  )
+  );
 }

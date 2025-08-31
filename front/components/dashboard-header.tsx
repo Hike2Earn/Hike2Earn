@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Bell, Menu, X, Mountain, BarChart3, Trophy } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { WalletButton } from "./wallet-button"
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Bell, Menu, X, Mountain, BarChart3, Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { WalletButton } from "./wallet-button";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Campaigns", href: "/campaigns", icon: Trophy },
   { name: "Climb", href: "/climb", icon: Mountain },
-]
+];
 
 export function DashboardHeader() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-50 glass-strong border-b border-white/10">
@@ -27,7 +27,11 @@ export function DashboardHeader() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <img src="/Logo-Hike2Earn.png" alt="Hike2Earn" className="w-full h-full object-contain" />
+              <img
+                src="/Logo-Hike2Earn.png"
+                alt="Hike2Earn"
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-xl font-bold text-gradient">Hike2Earn</span>
           </Link>
@@ -35,20 +39,22 @@ export function DashboardHeader() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             {navigation.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={cn(
                     "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary hover:bg-white/10",
-                    pathname === item.href ? "text-primary bg-primary/20" : "text-muted-foreground",
+                    pathname === item.href
+                      ? "text-primary bg-primary/20"
+                      : "text-muted-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.name}</span>
                 </Link>
-              )
+              );
             })}
           </nav>
 
@@ -70,8 +76,10 @@ export function DashboardHeader() {
             {/* Profile */}
             <div className="flex items-center gap-3">
               <Avatar className="w-8 h-8">
-                <AvatarImage src="/mountain-climber-avatar.png" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarImage src={undefined} />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-semibold">
+                  JD
+                </AvatarFallback>
               </Avatar>
               <div className="hidden sm:block">
                 <div className="text-sm font-semibold">John Doe</div>
@@ -80,8 +88,17 @@ export function DashboardHeader() {
             </div>
 
             {/* Mobile Menu Button */}
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -93,29 +110,31 @@ export function DashboardHeader() {
             <div className="px-3 pb-4">
               <WalletButton />
             </div>
-            
+
             <nav className="flex flex-col gap-2">
               {navigation.map((item) => {
-                const Icon = item.icon
+                const Icon = item.icon;
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={cn(
                       "flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary hover:bg-white/10",
-                      pathname === item.href ? "text-primary bg-primary/20" : "text-muted-foreground",
+                      pathname === item.href
+                        ? "text-primary bg-primary/20"
+                        : "text-muted-foreground"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.name}</span>
                   </Link>
-                )
+                );
               })}
             </nav>
           </div>
         )}
       </div>
     </header>
-  )
+  );
 }

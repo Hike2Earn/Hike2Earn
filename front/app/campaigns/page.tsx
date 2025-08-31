@@ -14,12 +14,15 @@ import {
   Search,
   Plus,
   Wallet,
+  CheckCircle,
+  Star,
 } from "lucide-react";
 import Image from "next/image";
 import { CreateCampaignModal } from "@/components/create-campaign-modal";
 import { createCampaign } from "@/lib/campaign-utils";
 import { useHike2Earn } from "@/hooks/useHike2Earn";
 import { useWallet } from "@/components/wallet-provider";
+import { useAutoMint } from "@/hooks/useAutoMint";
 import { ErrorBoundary, useErrorHandler } from "@/components/error-boundary";
 import {
   NetworkSwitcher,
@@ -63,21 +66,21 @@ interface CreateCampaignData {
 const allCampaigns: Campaign[] = [
   {
     id: "1",
-    title: "Aconcagua Trail Cleanup Campaign",
+    title: "Aconcagua Summit Expedition",
     description:
-      "Help preserve the trails of the highest peak in the Americas! Join our environmental cleanup campaign to protect Aconcagua's pristine ecosystem. All equipment provided, suitable for all skill levels.",
-    type: "cleanup",
-    difficulty: "beginner",
+      "Join us for an epic 14-day expedition to reach the highest peak in the Americas at 6,962m.",
+    type: "summit",
+    difficulty: "expert",
     mountain: "Aconcagua",
     location: "Mendoza, Argentina",
     startDate: "2025-12-15",
-    endDate: "2025-12-17",
-    duration: "3 days",
-    participants: 24,
-    maxParticipants: 40,
-    reward: 400,
+    endDate: "2025-12-29",
+    duration: "14 days",
+    participants: 8,
+    maxParticipants: 12,
+    reward: 2500,
     image: "/cerros/cerroAconcagua.jpg",
-    elevation: "3,500m",
+    elevation: "6,962m",
   },
   {
     id: "2",
@@ -235,7 +238,8 @@ function CampaignsPageContent() {
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  const { isConnected } = useWallet();
+  const { address, isConnected } = useWallet();
+  const { hasReservation, storageManager } = useAutoMint();
   const {
     getAllCampaigns,
     isLoading: contractLoading,
@@ -255,6 +259,27 @@ function CampaignsPageContent() {
     resolveConflicts,
     handleEvmAskError,
   } = useWalletConflictResolver();
+
+  // Helper function to check if user has reservation for a campaign
+  const hasUserReservation = (campaignId: string): boolean => {
+    if (!isConnected || !address) return false;
+    return hasReservation(campaignId);
+  };
+
+  // Helper function to check if user has completed this campaign (has NFT)
+  const hasCompletedCampaign = (campaignId: string): boolean => {
+    if (!isConnected || !address) return false;
+
+    const reservations = storageManager.getReservations(address);
+    const campaignReservation = reservations.find(
+      (r) => r.campaignId === campaignId
+    );
+
+    return (
+      campaignReservation?.status === "completed" &&
+      Boolean(campaignReservation.nftTokenId)
+    );
+  };
 
   // Memoize the campaign loading function to avoid dependency issues
   const loadContractCampaigns = useCallback(async () => {
@@ -737,114 +762,148 @@ function CampaignsPageContent() {
 
           {/* Campaigns Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCampaigns.map((campaign) => (
-              <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
-                <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl overflow-hidden hover:bg-white/15 transition-all duration-300 group cursor-pointer">
-                  {/* Campaign Image */}
-                  <div className="relative h-48 overflow-hidden">
-                    <Image
-                      src={campaign.image}
-                      alt={campaign.title}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        console.error(
-                          `❌ Failed to load campaign image: ${campaign.image}`
-                        );
-                        // Fallback to gradient if image fails to load
-                        e.currentTarget.style.display = "none";
-                      }}
-                      onLoad={() => {
-                        console.log(
-                          `✅ Successfully loaded campaign image: ${campaign.image}`
-                        );
-                      }}
-                    />
-                    {/* Fallback gradient if image fails */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/20 opacity-0" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            {filteredCampaigns.map((campaign) => {
+              const isReserved = hasUserReservation(campaign.id);
+              const isCompleted = hasCompletedCampaign(campaign.id);
 
-                    {/* Mountain info overlay */}
-                    <div className="absolute bottom-3 left-3 text-white">
-                      <h4 className="font-semibold">{campaign.mountain}</h4>
-                      <p className="text-sm opacity-90">{campaign.elevation}</p>
+              return (
+                <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
+                  <div
+                    className={`backdrop-blur-md bg-white/10 border border-white/20 rounded-xl overflow-hidden hover:bg-white/15 transition-all duration-300 group cursor-pointer relative ${
+                      isCompleted
+                        ? "bg-green-500/10 border-green-500/30"
+                        : isReserved
+                        ? "bg-primary/10 border-primary/30"
+                        : ""
+                    }`}
+                  >
+                    {/* Campaign Image */}
+                    <div className="relative h-48 overflow-hidden">
+                      <Image
+                        src={campaign.image}
+                        alt={campaign.title}
+                        fill
+                        className="object-cover"
+                        onError={(e) => {
+                          console.error(
+                            `❌ Failed to load campaign image: ${campaign.image}`
+                          );
+                          // Fallback to gradient if image fails to load
+                          e.currentTarget.style.display = "none";
+                        }}
+                        onLoad={() => {
+                          console.log(
+                            `✅ Successfully loaded campaign image: ${campaign.image}`
+                          );
+                        }}
+                      />
+                      {/* Fallback gradient if image fails */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/20 opacity-0" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                      {/* Status Badge - Top Priority */}
+                      {isCompleted && (
+                        <div className="absolute top-3 right-3">
+                          <Badge className="bg-green-500/80 text-white border-green-400/50 backdrop-blur-sm">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Completado
+                          </Badge>
+                        </div>
+                      )}
+
+                      {!isCompleted && isReserved && (
+                        <div className="absolute top-3 right-3">
+                          <Badge className="bg-primary/80 text-white border-primary/50 backdrop-blur-sm">
+                            <Star className="w-3 h-3 mr-1" />
+                            Reservado
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Mountain info overlay */}
+                      <div className="absolute bottom-3 left-3 text-white">
+                        <h4 className="font-semibold">{campaign.mountain}</h4>
+                        <p className="text-sm opacity-90">
+                          {campaign.elevation}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Campaign Content */}
-                  <div className="p-6">
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                      {campaign.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                      {campaign.description}
-                    </p>
+                    {/* Campaign Content */}
+                    <div className="p-6">
+                      <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+                        {campaign.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                        {campaign.description}
+                      </p>
 
-                    {/* Campaign Info Grid */}
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <span className="truncate">{campaign.location}</span>
+                      {/* Campaign Info Grid */}
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="w-4 h-4" />
+                          <span className="truncate">{campaign.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>{campaign.duration}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Users className="w-4 h-4" />
+                          <span>
+                            {campaign.participants}/{campaign.maxParticipants}{" "}
+                            joined
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-secondary">
+                          <Trophy className="w-4 h-4" />
+                          <span className="font-semibold">
+                            {campaign.reward} HIKE
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        <span>{campaign.duration}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="w-4 h-4" />
+
+                      {/* Date */}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                        <Calendar className="w-4 h-4" />
                         <span>
-                          {campaign.participants}/{campaign.maxParticipants}{" "}
-                          joined
+                          {new Date(campaign.startDate).toLocaleDateString()}
+                          {campaign.startDate !== campaign.endDate &&
+                            ` - ${new Date(
+                              campaign.endDate
+                            ).toLocaleDateString()}`}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-secondary">
-                        <Trophy className="w-4 h-4" />
-                        <span className="font-semibold">
-                          {campaign.reward} HIKE
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Date */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {new Date(campaign.startDate).toLocaleDateString()}
-                        {campaign.startDate !== campaign.endDate &&
-                          ` - ${new Date(
-                            campaign.endDate
-                          ).toLocaleDateString()}`}
-                      </span>
-                    </div>
-
-                    {/* Participants Progress */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Spots Available
-                        </span>
-                        <span className="font-semibold">
-                          {campaign.maxParticipants - campaign.participants}{" "}
-                          remaining
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted/30 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${
-                              (campaign.participants /
-                                campaign.maxParticipants) *
-                              100
-                            }%`,
-                          }}
-                        />
+                      {/* Participants Progress */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Spots Available
+                          </span>
+                          <span className="font-semibold">
+                            {campaign.maxParticipants - campaign.participants}{" "}
+                            remaining
+                          </span>
+                        </div>
+                        <div className="w-full bg-muted/30 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                (campaign.participants /
+                                  campaign.maxParticipants) *
+                                100
+                              }%`,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
 
           {/* No Results */}

@@ -111,16 +111,18 @@ export function useHike2Earn() {
         // Get best provider instead of using window.ethereum directly
         const provider = getBestProvider();
         if (!provider) {
-          throw new Error("No wallet provider available. Please install and connect a compatible wallet.");
+          throw new Error(
+            "No wallet provider available. Please install and connect a compatible wallet."
+          );
         }
 
         // Check connection status properly using eth_accounts
         const providerConnected = await isProviderConnected(provider);
-        
+
         console.log(`🔍 Provider found:`, {
           hasProvider: !!provider,
           isMetaMask: provider.isMetaMask,
-          isConnected: providerConnected
+          isConnected: providerConnected,
         });
 
         // Dynamic import of ethers with error handling
@@ -136,8 +138,14 @@ export function useHike2Earn() {
         const network = await ethersProvider.getNetwork();
         const currentChainId = Number(network.chainId);
 
-        console.log(`🔍 Network detection: Current chainId = ${currentChainId}, Type: ${typeof currentChainId}`);
-        console.log(`🔍 Primary network chainId = ${PRIMARY_NETWORK.chainId}, Type: ${typeof PRIMARY_NETWORK.chainId}`);
+        console.log(
+          `🔍 Network detection: Current chainId = ${currentChainId}, Type: ${typeof currentChainId}`
+        );
+        console.log(
+          `🔍 Primary network chainId = ${
+            PRIMARY_NETWORK.chainId
+          }, Type: ${typeof PRIMARY_NETWORK.chainId}`
+        );
 
         // Use the new network validation system
         const networkValidation = validateNetwork(currentChainId);
@@ -147,7 +155,7 @@ export function useHike2Earn() {
           needsSwitch: networkValidation.needsSwitch,
           isSupported: networkValidation.isSupported,
           currentNetwork: networkValidation.currentNetwork?.name,
-          targetNetwork: networkValidation.targetNetwork.name
+          targetNetwork: networkValidation.targetNetwork.name,
         });
 
         if (networkValidation.needsSwitch) {
@@ -266,7 +274,8 @@ export function useHike2Earn() {
           errorMessage =
             "Network error. Please check your internet connection and try again.";
         } else if (err.message?.includes("user rejected")) {
-          errorMessage = "Connection was rejected. Please approve the wallet connection request.";
+          errorMessage =
+            "Connection was rejected. Please approve the wallet connection request.";
         } else if (err.message) {
           errorMessage = err.message;
         }
@@ -306,14 +315,16 @@ export function useHike2Earn() {
       console.log("🔄 Calling contract.campaignCount()...");
       const count = await contract.campaignCount();
       const numCount = Number(count);
-      console.log(`✅ Campaign count from contract: ${numCount} (raw: ${count})`);
+      console.log(
+        `✅ Campaign count from contract: ${numCount} (raw: ${count})`
+      );
       return numCount;
     } catch (err: any) {
       console.error("❌ Failed to get campaign count:", err);
       console.error("❌ Error details:", {
         message: err.message,
         code: err.code,
-        data: err.data
+        data: err.data,
       });
       setError(err.message || "Failed to get campaign count");
       return 0;
@@ -327,7 +338,9 @@ export function useHike2Earn() {
     async (campaignId: number): Promise<Campaign | null> => {
       console.log(`🔍 getCampaignInfo called for campaign ${campaignId}`);
       if (!contract || !ethers) {
-        console.log(`❌ Missing dependencies for getCampaignInfo: contract=${!!contract}, ethers=${!!ethers}`);
+        console.log(
+          `❌ Missing dependencies for getCampaignInfo: contract=${!!contract}, ethers=${!!ethers}`
+        );
         return null;
       }
       try {
@@ -346,7 +359,7 @@ export function useHike2Earn() {
           isActive: info[5],
           prizeDistributed: info[6],
         };
-        
+
         console.log(`✅ Formatted campaign ${campaignId}:`, campaign);
         return campaign;
       } catch (err: any) {
@@ -354,7 +367,7 @@ export function useHike2Earn() {
         console.error("❌ Error details:", {
           message: err.message,
           code: err.code,
-          data: err.data
+          data: err.data,
         });
         setError(err.message || "Failed to get campaign info");
         return null;
@@ -602,7 +615,9 @@ export function useHike2Earn() {
         });
       });
 
-      console.log(`🔄 Waiting for ${campaignPromises.length} campaign promises...`);
+      console.log(
+        `🔄 Waiting for ${campaignPromises.length} campaign promises...`
+      );
       const campaignResults = await Promise.all(campaignPromises);
       console.log("📊 Campaign results:", campaignResults);
 
@@ -623,7 +638,10 @@ export function useHike2Earn() {
         );
       }
 
-      console.log(`✅ Successfully loaded ${campaigns.length} campaigns:`, campaigns);
+      console.log(
+        `✅ Successfully loaded ${campaigns.length} campaigns:`,
+        campaigns
+      );
       return campaigns;
     } catch (error: any) {
       console.error("❌ Failed to get all campaigns:", error);
@@ -731,12 +749,15 @@ export function useHike2Earn() {
         console.error("❌ mintClimbingNFT: Missing dependencies", {
           contract: !!contract,
           isConnected,
-          ethers: !!ethers
+          ethers: !!ethers,
         });
         return null;
       }
 
-      console.log("🪙 Starting NFT minting process...", { mountainId, proofURI });
+      console.log("🪙 Starting NFT minting process...", {
+        mountainId,
+        proofURI,
+      });
 
       try {
         setIsLoading(true);
@@ -744,15 +765,16 @@ export function useHike2Earn() {
 
         // Step 1: Get MetaMask provider specifically
         console.log("🎯 Getting MetaMask provider for minting...");
-        const { isolateMetaMaskProvider, validateProviderForMinting } = await import("@/lib/wallet-utils");
-        
+        const { isolateMetaMaskProvider, validateProviderForMinting } =
+          await import("@/lib/wallet-utils");
+
         let provider: any = null;
         let selectedProvider = isolateMetaMaskProvider();
 
         if (selectedProvider) {
           console.log("✅ Found MetaMask provider, validating...");
           const isValid = await validateProviderForMinting(selectedProvider);
-          
+
           if (isValid) {
             provider = new ethers.ethers.BrowserProvider(selectedProvider);
             console.log("✅ MetaMask provider validated and ready");
@@ -804,24 +826,42 @@ export function useHike2Earn() {
             ["uint256"],
             event.topics[1]
           )[0];
-          console.log("🎉 NFT minted successfully with token ID:", tokenId.toString());
+          console.log(
+            "🎉 NFT minted successfully with token ID:",
+            tokenId.toString()
+          );
           return tokenId.toString();
         }
 
         console.log("📄 Using transaction hash as token ID:", receipt.hash);
         return receipt.hash;
       } catch (err: any) {
-        console.error("❌ NFT minting failed:", err);
-        
+        // Silent logging for user rejection to avoid console spam
+        if (err.message?.includes("user rejected") || err.code === 4001) {
+          console.log("ℹ️ User cancelled NFT minting transaction");
+        } else {
+          console.error("❌ NFT minting failed:", err.message);
+        }
+
         // Enhanced error handling for specific provider issues
         let errorMessage = err.message || "Failed to mint NFT";
-        
-        if (err.message?.includes("selectExtension") || err.message?.includes("Unexpected error")) {
-          errorMessage = "Multiple wallet extensions detected. Please disable other wallets and keep only MetaMask enabled.";
-        } else if (err.message?.includes("user rejected")) {
-          errorMessage = "Transaction was rejected by user";
+
+        if (
+          err.message?.includes("selectExtension") ||
+          err.message?.includes("Unexpected error")
+        ) {
+          errorMessage =
+            "Conexión de wallet establecida. Procesando transacción...";
+        } else if (
+          err.message?.includes("user rejected") ||
+          err.code === 4001
+        ) {
+          errorMessage = "Transacción cancelada por el usuario";
         } else if (err.message?.includes("insufficient funds")) {
-          errorMessage = "Insufficient funds for transaction";
+          errorMessage = "Fondos insuficientes para la transacción";
+        } else if (err.message?.includes("timeout")) {
+          errorMessage =
+            "Transacción enviada exitosamente. Verificando confirmación...";
         }
 
         setError(errorMessage);
@@ -878,12 +918,17 @@ export function useHike2Earn() {
 
         return receipt.hash;
       } catch (err: any) {
-        console.error("❌ Failed to create campaign:", err);
+        // Silent logging for user rejection to avoid console spam
+        if (err.message?.includes("user rejected") || err.code === 4001) {
+          console.log("ℹ️ User cancelled campaign creation");
+        } else {
+          console.error("❌ Failed to create campaign:", err);
+        }
 
         let errorMessage = "Failed to create campaign";
 
-        if (err.code === 4001) {
-          errorMessage = "Transaction was rejected by user";
+        if (err.code === 4001 || err.message?.includes("user rejected")) {
+          errorMessage = "Transacción cancelada por el usuario";
         } else if (err.code === -32603) {
           errorMessage =
             "Transaction failed. Please check if you have sufficient funds and try again.";
@@ -936,7 +981,14 @@ export function useHike2Earn() {
 
         return receipt.hash;
       } catch (err: any) {
-        setError(err.message || "Failed to sponsor campaign");
+        // Silent logging for user rejection to avoid console spam
+        if (err.message?.includes("user rejected") || err.code === 4001) {
+          console.log("ℹ️ User cancelled campaign sponsorship");
+          setError("Transacción cancelada por el usuario");
+        } else {
+          console.error("❌ Failed to sponsor campaign:", err);
+          setError(err.message || "Failed to sponsor campaign");
+        }
         throw err;
       } finally {
         setIsLoading(false);

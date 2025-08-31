@@ -1,37 +1,42 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Camera, MapPin, Trophy, X } from "lucide-react"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Camera, MapPin, Trophy, X } from "lucide-react";
 
 export function CreatePostModal() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [content, setContent] = useState("")
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+        setSelectedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handlePost = () => {
     // Handle post creation
-    console.log("Creating post:", { content, image: selectedImage })
-    setContent("")
-    setSelectedImage(null)
-    setIsOpen(false)
-  }
+    console.log("Creating post:", { content, image: selectedImage });
+    setContent("");
+    setSelectedImage(null);
+    setIsOpen(false);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -44,8 +49,10 @@ export function CreatePostModal() {
           {/* User Info */}
           <div className="flex items-center space-x-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="/mountain-climber-avatar.png" />
-              <AvatarFallback>YU</AvatarFallback>
+              <AvatarImage src={undefined} />
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-semibold">
+                YU
+              </AvatarFallback>
             </Avatar>
             <div>
               <p className="font-semibold text-white">Your Name</p>
@@ -83,20 +90,39 @@ export function CreatePostModal() {
           {/* Action Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
               <label htmlFor="image-upload">
-                <Button variant="outline" size="sm" className="bg-white/5 border-white/10 hover:bg-white/10" asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/5 border-white/10 hover:bg-white/10"
+                  asChild
+                >
                   <span className="cursor-pointer">
                     <Camera className="h-4 w-4 mr-2" />
                     Photo
                   </span>
                 </Button>
               </label>
-              <Button variant="outline" size="sm" className="bg-white/5 border-white/10 hover:bg-white/10">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/5 border-white/10 hover:bg-white/10"
+              >
                 <MapPin className="h-4 w-4 mr-2" />
                 Location
               </Button>
-              <Button variant="outline" size="sm" className="bg-white/5 border-white/10 hover:bg-white/10">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/5 border-white/10 hover:bg-white/10"
+              >
                 <Trophy className="h-4 w-4 mr-2" />
                 Achievement
               </Button>
@@ -113,5 +139,5 @@ export function CreatePostModal() {
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

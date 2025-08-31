@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Crown, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Crown, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 const leaderboardData = [
   {
     id: 1,
     rank: 1,
     name: "Alex Mountain",
-    avatar: "/climber-avatar-1.png",
+    avatar: null,
     peakTokens: 15420,
     change: "up",
     isYou: false,
@@ -19,7 +19,7 @@ const leaderboardData = [
     id: 2,
     rank: 2,
     name: "Sarah Peak",
-    avatar: "/climber-avatar-2.png",
+    avatar: null,
     peakTokens: 14890,
     change: "down",
     isYou: false,
@@ -28,7 +28,7 @@ const leaderboardData = [
     id: 3,
     rank: 3,
     name: "Mike Summit",
-    avatar: "/climber-avatar-3.png",
+    avatar: null,
     peakTokens: 13750,
     change: "up",
     isYou: false,
@@ -37,7 +37,7 @@ const leaderboardData = [
     id: 4,
     rank: 4,
     name: "Emma Ridge",
-    avatar: "/climber-avatar-4.png",
+    avatar: null,
     peakTokens: 12340,
     change: "same",
     isYou: false,
@@ -46,24 +46,24 @@ const leaderboardData = [
     id: 5,
     rank: 5,
     name: "You",
-    avatar: "/ai-avatar.png",
+    avatar: null,
     peakTokens: 11247,
     change: "up",
     isYou: true,
   },
-]
+];
 
 const changeIcons = {
   up: TrendingUp,
   down: TrendingDown,
   same: Minus,
-}
+};
 
 const changeColors = {
   up: "text-green-500",
   down: "text-red-500",
   same: "text-muted-foreground",
-}
+};
 
 export function LeaderboardWidget() {
   return (
@@ -82,13 +82,16 @@ export function LeaderboardWidget() {
 
       <div className="px-6 pb-6 space-y-3">
         {leaderboardData.map((user, index) => {
-          const ChangeIcon = changeIcons[user.change as keyof typeof changeIcons]
+          const ChangeIcon =
+            changeIcons[user.change as keyof typeof changeIcons];
 
           return (
             <div
               key={user.id}
               className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
-                user.isYou ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/30"
+                user.isYou
+                  ? "bg-primary/10 border border-primary/20"
+                  : "hover:bg-muted/30"
               }`}
             >
               {/* Rank */}
@@ -96,7 +99,13 @@ export function LeaderboardWidget() {
                 {user.rank === 1 ? (
                   <Crown className="w-5 h-5 text-yellow-500" />
                 ) : (
-                  <span className={`font-bold text-sm ${user.rank <= 3 ? "text-secondary" : "text-muted-foreground"}`}>
+                  <span
+                    className={`font-bold text-sm ${
+                      user.rank <= 3
+                        ? "text-secondary"
+                        : "text-muted-foreground"
+                    }`}
+                  >
                     #{user.rank}
                   </span>
                 )}
@@ -104,8 +113,8 @@ export function LeaderboardWidget() {
 
               {/* Avatar */}
               <Avatar className="w-8 h-8">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                <AvatarFallback>
+                <AvatarImage src={user.avatar || undefined} />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-semibold">
                   {user.name
                     .split(" ")
                     .map((n) => n[0])
@@ -116,24 +125,37 @@ export function LeaderboardWidget() {
               {/* User Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold text-sm truncate ${user.isYou ? "text-primary" : "text-foreground"}`}>
+                  <span
+                    className={`font-semibold text-sm truncate ${
+                      user.isYou ? "text-primary" : "text-foreground"
+                    }`}
+                  >
                     {user.name}
                   </span>
                   {user.isYou && (
-                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-primary/10 text-primary border-primary/20"
+                    >
                       You
                     </Badge>
                   )}
                 </div>
-                <div className="text-xs text-muted-foreground">{user.peakTokens.toLocaleString()} HIKE</div>
+                <div className="text-xs text-muted-foreground">
+                  {user.peakTokens.toLocaleString()} HIKE
+                </div>
               </div>
 
               {/* Change Indicator */}
-              <div className={`${changeColors[user.change as keyof typeof changeColors]}`}>
+              <div
+                className={`${
+                  changeColors[user.change as keyof typeof changeColors]
+                }`}
+              >
                 <ChangeIcon className="w-4 h-4" />
               </div>
             </div>
-          )
+          );
         })}
 
         {/* View Full Leaderboard */}
@@ -144,5 +166,5 @@ export function LeaderboardWidget() {
         </div>
       </div>
     </div>
-  )
+  );
 }
