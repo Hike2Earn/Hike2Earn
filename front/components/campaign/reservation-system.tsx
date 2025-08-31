@@ -110,7 +110,7 @@ export function ReservationSystem({
       reserved: {
         color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
         icon: Clock,
-        label: "Reservado",
+        label: "Reserved",
       },
       in_progress: {
         color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
@@ -195,9 +195,9 @@ export function ReservationSystem({
           <div className="flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-primary" />
             <div>
-              <p className="font-semibold text-primary">¡Lugar Reservado!</p>
+              <p className="font-semibold text-primary">Spot Reserved!</p>
               <p className="text-sm text-muted-foreground">
-                Evento registrado en tu calendario
+                Event added to your calendar
               </p>
             </div>
           </div>
@@ -209,7 +209,7 @@ export function ReservationSystem({
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="w-4 h-4" />
             <span>
-              {new Date(campaign.startDate).toLocaleDateString("es-ES", {
+              {new Date(campaign.startDate).toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",
                 month: "long",
@@ -231,7 +231,7 @@ export function ReservationSystem({
             <div className="flex items-center gap-2 text-blue-400">
               <Clock className="w-4 h-4" />
               <span className="text-sm">
-                Evento próximo - Prepárate para la aventura
+                Upcoming Event - Get Ready for the Adventure
               </span>
             </div>
           )}
@@ -240,7 +240,7 @@ export function ReservationSystem({
             <div className="flex items-center gap-2 text-green-400">
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm">
-                ¡Evento activo! - Ya puedes subir tu verificación
+                Event Active! - You can now upload your verification
               </span>
             </div>
           )}
@@ -284,7 +284,7 @@ export function ReservationSystem({
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-4 h-4" />
           <span>
-            {new Date(campaign.startDate).toLocaleDateString("es-ES", {
+            {new Date(campaign.startDate).toLocaleDateString("en-US", {
               weekday: "long",
               year: "numeric",
               month: "long",
@@ -309,12 +309,12 @@ export function ReservationSystem({
         {loading ? (
           <>
             <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-            Reservando...
+            Reserving...
           </>
         ) : isEventPast() ? (
-          "Evento Finalizado"
+          "Event Ended"
         ) : (
-          "Reservar Lugar"
+          "Reserve Spot"
         )}
       </Button>
 

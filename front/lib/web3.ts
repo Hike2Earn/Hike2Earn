@@ -754,7 +754,7 @@ function getMountainData(mountainId: number) {
       altitude: 6570,
       location: "Mendoza, Argentina",
     },
-    4: { name: "Cerro Plata", altitude: 6100, location: "Mendoza, Argentina" },
+    4: { name: "Cerro el Plata", altitude: 6100, location: "Mendoza, Argentina" },
     5: {
       name: "Cerro El Plomo",
       altitude: 5424,

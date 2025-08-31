@@ -61,7 +61,7 @@ const mendozaPeaks = [
   },
   {
     id: 4,
-    name: "Cerro Plata",
+    name: "Cerro el Plata",
     altitude: "6,100m",
     difficulty: "advanced",
     reward: "1500 HIKE",

@@ -74,7 +74,7 @@ const mockCampaign: Campaign = {
   difficulty: "intermediate",
   mountain: "Aconcagua",
   location: "Mendoza, Argentina",
-  startDate: "2025-12-15",
+  startDate: "2025-12-14",
   endDate: "2025-12-29",
   duration: "3 days",
   participants: 12,
@@ -85,7 +85,7 @@ const mockCampaign: Campaign = {
   distance: "45km total",
   terrain: "Mountain trails, moderate altitude",
   weather: "5°C to 20°C, variable conditions",
-  technicalRating: "F (Facile)",
+  technicalRating: "E (Easy)",
   equipment: [
     "Hiking boots",
     "Work gloves",
@@ -551,8 +551,8 @@ export default function CampaignDetailsPage() {
                     Just want to verify the summit?
                   </h4>
                   <p className="text-xs text-muted-foreground mb-3">
-                    If you've already climbed {campaign.mountain} on your own, you can
-                    verify your summit directly.
+                    If you've already climbed {campaign.mountain} on your own,
+                    you can verify your summit directly.
                   </p>
                   <Button
                     variant="outline"

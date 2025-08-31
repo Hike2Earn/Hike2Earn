@@ -64,7 +64,7 @@ const getPeakImage = (peakName: string) => {
     Aconcagua: "/cerros/cerroAconcagua.jpg",
     "Cerro Mercedario": "/cerros/cerroFranke.jpg",
     "Cerro Tupungato": "/cerros/cerroLomasAmarillas.jpg",
-    "Cerro Plata": "/cerros/cerroSanBernardo2.jpg",
+    "Cerro el Plata": "/cerros/cerroSanBernardo2.jpg",
     "Cerro El Plomo": "/cerros/cerroSanCristobal.jpg",
     "Cerro Vallecitos": "/cerros/cerroAdolfoCalle.jpg",
   };

@@ -69,37 +69,37 @@ export function MyEvents() {
       reserved: {
         color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
         icon: Clock,
-        label: "Reservado",
+        label: "Reserved",
       },
       in_progress: {
         color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
         icon: Clock,
-        label: "En Progreso",
+        label: "In Progress",
       },
       verifying: {
         color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
         icon: Camera,
-        label: "Verificando",
+        label: "Verifying",
       },
       minting: {
         color: "bg-orange-500/20 text-orange-400 border-orange-500/30",
         icon: Trophy,
-        label: "Minteando NFT",
+        label: "Minting NFT",
       },
       completed: {
         color: "bg-green-500/20 text-green-400 border-green-500/30",
         icon: CheckCircle,
-        label: "Completado",
+        label: "Completed",
       },
       failed: {
         color: "bg-red-500/20 text-red-400 border-red-500/30",
         icon: AlertCircle,
-        label: "Error",
+        label: "Failed",
       },
       pending: {
         color: "bg-gray-500/20 text-gray-400 border-gray-500/30",
         icon: Clock,
-        label: "Pendiente",
+        label: "Pending",
       },
     };
 
@@ -165,13 +165,13 @@ export function MyEvents() {
     return (
       <div className="text-center p-8">
         <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No hay eventos</h3>
+        <h3 className="text-lg font-semibold mb-2">No Events</h3>
         <p className="text-muted-foreground mb-4">
-          Aún no tienes eventos reservados o verificaciones pendientes
+          You don't have any reserved events or pending verifications yet
         </p>
         <Button variant="outline" onClick={refreshData}>
           <RefreshCw className="w-4 h-4 mr-2" />
-          Actualizar
+          Refresh
         </Button>
       </div>
     );
@@ -199,7 +199,7 @@ export function MyEvents() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Trophy className="w-5 h-5" />
-            Eventos de Campañas ({reservations.length})
+            Campaign Events ({reservations.length})
           </h3>
 
           <div className="grid gap-4">
@@ -280,7 +280,7 @@ export function MyEvents() {
                             className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
                           >
                             <Camera className="w-4 h-4 mr-2" />
-                            Verificar Participación
+                            Verify Participation
                           </Button>
                         )}
 
@@ -319,7 +319,7 @@ export function MyEvents() {
                         <div className="flex items-center gap-2 text-purple-400">
                           <div className="w-3 h-3 animate-spin rounded-full border border-purple-400 border-t-transparent" />
                           <span className="text-xs">
-                            Verificación en proceso...
+                            Verification in progress...
                           </span>
                         </div>
                       )}
@@ -430,7 +430,7 @@ export function MyEvents() {
                         <div className="flex items-center gap-2 text-purple-400">
                           <div className="w-3 h-3 animate-spin rounded-full border border-purple-400 border-t-transparent" />
                           <span className="text-xs">
-                            Verificación en proceso...
+                            Verification in progress...
                           </span>
                         </div>
                       )}

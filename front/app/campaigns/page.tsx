@@ -243,18 +243,7 @@ function CampaignsPageContent() {
   const [contractCampaigns, setContractCampaigns] = useState<Campaign[]>([]);
   const [localCampaigns, setLocalCampaigns] = useState<Campaign[]>([]);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<{
-    contractAvailable: boolean;
-    contractHealthy: boolean;
-    address: string | null;
-    networkInfo: any;
-    contractCode: string | null;
-    campaignCount: number;
-    contractOwner: string | null;
-    campaignDetails: any[];
-    errors: string[];
-  } | null>(null);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
 
   const { address, isConnected } = useWallet();
   const { hasReservation, storageManager } = useAutoMint();
@@ -263,8 +252,6 @@ function CampaignsPageContent() {
     isLoading: contractLoading,
     error: contractError,
     contractHealthy,
-    diagnoseContractState,
-    createTestCampaign,
   } = useHike2Earn();
   const { chainId, needsSwitch, isSupported } = useNetworkStatus();
 
@@ -301,86 +288,22 @@ function CampaignsPageContent() {
     );
   };
 
-  // Function to run contract diagnostics
-  const runContractDiagnostics = async () => {
-    console.log("🔬 Running contract diagnostics...");
-    try {
-      const diagResult = await diagnoseContractState();
-      setDiagnostics(diagResult);
-      setShowDiagnostics(true);
-      console.log("🔬 Diagnostics completed:", diagResult);
-    } catch (error) {
-      console.error("❌ Failed to run diagnostics:", error);
-    }
-  };
 
-  // Function to create a test campaign
-  const handleCreateTestCampaign = async () => {
-    console.log("🧪 Creating test campaign...");
-    try {
-      const result = await createTestCampaign();
-      if (result.success) {
-        console.log(
-          "✅ Test campaign created successfully:",
-          result.campaignId
-        );
-        // Reload campaigns after creating the test campaign
-        setTimeout(async () => {
-          console.log("🔄 Reloading campaigns after test creation...");
-          await loadContractCampaigns();
-          // Also refresh diagnostics to show the new campaign
-          setTimeout(() => runContractDiagnostics(), 1000);
-        }, 3000); // Wait longer for transaction to be mined
-      } else {
-        console.error("❌ Failed to create test campaign:", result.error);
-        // Show user-friendly error message
-        if (
-          result.error?.includes("evmAsk.js") ||
-          result.error?.includes("Unexpected error")
-        ) {
-          alert(
-            "Wallet conflict detected. Please:\n\n1. Close other wallet extensions (like Phantom)\n2. Refresh the page\n3. Make sure only MetaMask is enabled\n4. Try again"
-          );
-        } else {
-          alert(`Failed to create test campaign: ${result.error}`);
-        }
-      }
-    } catch (error: any) {
-      console.error("❌ Error creating test campaign:", error);
-      const errorMessage = error.message || "Unknown error occurred";
 
-      if (
-        errorMessage.includes("evmAsk.js") ||
-        errorMessage.includes("Unexpected error")
-      ) {
-        alert(
-          "Wallet conflict detected. Please:\n\n1. Close other wallet extensions (like Phantom)\n2. Refresh the page\n3. Make sure only MetaMask is enabled\n4. Try again"
-        );
-      } else {
-        alert(`Error creating test campaign: ${errorMessage}`);
-      }
-    }
-  };
 
   // Memoize the campaign loading function to avoid dependency issues
   // Load local campaigns from localStorage
   const loadLocalCampaigns = useCallback(() => {
     try {
-      console.log("📦 Loading local campaigns from localStorage...");
       const storedCampaigns = localStorage.getItem("localCampaigns");
-      console.log("📦 Raw localStorage data:", storedCampaigns);
 
       if (storedCampaigns) {
         const localCampaigns = JSON.parse(storedCampaigns);
-        console.log("📦 Parsed local campaigns:", localCampaigns.length);
-        console.log("📦 Local campaigns details:", localCampaigns);
         setLocalCampaigns(localCampaigns);
       } else {
-        console.log("📦 No local campaigns found in localStorage");
         setLocalCampaigns([]);
       }
     } catch (error) {
-      console.error("❌ Failed to load local campaigns:", error);
       setLocalCampaigns([]);
     }
   }, []);
@@ -388,45 +311,23 @@ function CampaignsPageContent() {
   const loadContractCampaigns = useCallback(async () => {
     // Prevent concurrent loading
     if (isLoadingCampaigns) {
-      console.log("🔄 Already loading campaigns, skipping...");
       return;
     }
 
-    console.log("🔍 Checking conditions for loading campaigns:", {
-      isConnected,
-      contractHealthy,
-      isSupported,
-      needsSwitch,
-      chainId,
-    });
 
     if (isConnected && contractHealthy && isSupported && !needsSwitch) {
       setIsLoadingCampaigns(true);
-      console.log(
-        "✅ All conditions met, starting to load contract campaigns..."
-      );
 
       try {
-        console.log("🔄 Calling getAllCampaigns...");
         const campaigns = await getAllCampaigns();
 
-        console.log("📊 getAllCampaigns result:", {
-          campaigns,
-          type: typeof campaigns,
-          length: campaigns?.length,
-          isArray: Array.isArray(campaigns),
-        });
 
         if (!campaigns || !Array.isArray(campaigns)) {
-          console.warn("⚠️ getAllCampaigns returned invalid data:", campaigns);
           setContractCampaigns([]);
           return;
         }
 
         if (campaigns.length === 0) {
-          console.log(
-            "ℹ️ No campaigns found in contract (this is normal if no campaigns have been created yet)"
-          );
           setContractCampaigns([]);
           return;
         }
@@ -449,18 +350,11 @@ function CampaignsPageContent() {
         // Convert contract campaigns to UI format
         const formattedCampaigns: Campaign[] = campaigns.map(
           (campaign, index) => {
-            console.log(
-              `🔄 Formatting campaign ${index} (ID: ${campaign.id}):`,
-              campaign
-            );
 
             // Use a different image for each campaign based on its index
             const imageIndex = index % availableImages.length;
             const campaignImage = availableImages[imageIndex];
 
-            console.log(
-              `🎨 Assigning image to campaign ${campaign.id}: ${campaignImage}`
-            );
 
             return {
               id: `contract-${campaign.id}`,
@@ -489,29 +383,10 @@ function CampaignsPageContent() {
           }
         );
 
-        console.log(
-          `✅ Successfully formatted ${formattedCampaigns.length} contract campaigns:`,
-          formattedCampaigns
-        );
 
-        // Log final campaign data for debugging
-        formattedCampaigns.forEach((campaign, idx) => {
-          console.log(`📋 Final Campaign ${idx}:`, {
-            id: campaign.id,
-            title: campaign.title,
-            image: campaign.image,
-            type: campaign.type,
-            difficulty: campaign.difficulty,
-          });
-        });
 
         setContractCampaigns(formattedCampaigns);
       } catch (error) {
-        console.error("❌ Failed to load contract campaigns:", error);
-        console.error("❌ Error details:", {
-          message: error instanceof Error ? error.message : "Unknown error",
-          stack: error instanceof Error ? error.stack : undefined,
-        });
         setContractCampaigns([]); // Clear campaigns on error
 
         // Handle different types of errors gracefully
@@ -521,22 +396,15 @@ function CampaignsPageContent() {
             error.message.includes("evmAsk.js") ||
             error.message.includes("selectExtension")
           ) {
-            console.warn(
-              "⚠️ Wallet conflict detected - please refresh page and try again"
-            );
           } else if (error.message.includes("user rejected")) {
-            console.warn("⚠️ User rejected wallet connection");
           } else {
-            console.error("❌ Error loading campaigns:", error.message);
           }
         } else {
-          console.error("❌ Unknown error type:", error);
         }
       } finally {
         setIsLoadingCampaigns(false);
       }
     } else {
-      console.log("⚠️ Conditions not met, not loading campaigns");
       // Clear campaigns if not connected or network wrong
       setContractCampaigns([]);
     }
@@ -566,25 +434,16 @@ function CampaignsPageContent() {
     ].filter((campaign) => {
       // Safety check: ensure campaign has required properties
       if (!campaign || typeof campaign !== "object") {
-        console.warn("🚨 Invalid campaign object:", campaign);
         return false;
       }
 
       if (!campaign.id || !campaign.title || !campaign.description) {
-        console.warn("🚨 Campaign missing required properties:", campaign);
         return false;
       }
 
       return true;
     });
 
-    console.log("📊 Combined campaigns count:", combined.length);
-    console.log("📊 Campaigns breakdown:", {
-      allCampaigns: allCampaigns.length,
-      userCampaigns: userCampaigns.length,
-      contractCampaigns: contractCampaigns.length,
-      localCampaigns: localCampaigns.length,
-    });
 
     return combined;
   }, [allCampaigns, userCampaigns, contractCampaigns, localCampaigns]);
@@ -624,7 +483,6 @@ function CampaignsPageContent() {
       const result = await createCampaign(campaignData);
 
       if (!result.success) {
-        console.error("❌ Campaign creation failed:", result.error);
         throw new Error(result.error || "Failed to create campaign");
       }
 
@@ -679,7 +537,6 @@ function CampaignsPageContent() {
 
       return { success: true, campaignId: result.campaignId };
     } catch (error) {
-      console.error("❌ Failed to create campaign:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return { success: false, error: errorMessage };
@@ -756,32 +613,6 @@ function CampaignsPageContent() {
                 </div>
               )}
 
-            {/* Contract Healthy - Show Diagnostics Button */}
-            {isConnected && contractHealthy && isSupported && !needsSwitch && (
-              <div className="mt-3 p-2.5 bg-green-500/5 border border-green-500/10 rounded-lg transition-all duration-300 animate-in fade-in slide-in-from-top-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0" />
-                    <div>
-                      <span className="text-xs font-medium text-green-400">
-                        ✅ Contract Connected
-                      </span>
-                      <p className="text-xs text-muted-foreground/80 mt-0.5">
-                        Smart contract is healthy and ready
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={runContractDiagnostics}
-                    size="sm"
-                    variant="outline"
-                    className="text-xs h-6 px-2"
-                  >
-                    🔬 Debug
-                  </Button>
-                </div>
-              </div>
-            )}
 
             {/* Contract Error */}
             {isConnected && !contractHealthy && (
@@ -799,14 +630,7 @@ function CampaignsPageContent() {
                     <p className="text-xs text-muted-foreground/80 mt-1">
                       Showing {allCampaigns.length} featured campaigns
                     </p>
-                    <Button
-                      onClick={runContractDiagnostics}
-                      size="sm"
-                      variant="outline"
-                      className="text-xs h-6 px-2 mt-2"
-                    >
-                      🔬 Run Diagnostics
-                    </Button>
+
                   </div>
                 </div>
               </div>
@@ -936,16 +760,10 @@ function CampaignsPageContent() {
                           fill
                           className="object-cover"
                           onError={(e) => {
-                            console.error(
-                              `❌ Failed to load campaign image: ${campaign.image}`
-                            );
                             // Fallback to gradient if image fails to load
                             e.currentTarget.style.display = "none";
                           }}
                           onLoad={() => {
-                            console.log(
-                              `✅ Successfully loaded campaign image: ${campaign.image}`
-                            );
                           }}
                         />
                         {/* Fallback gradient if image fails */}
@@ -966,7 +784,7 @@ function CampaignsPageContent() {
                           <div className="absolute top-3 right-3">
                             <Badge className="bg-primary/80 text-white border-primary/50 backdrop-blur-sm">
                               <Star className="w-3 h-3 mr-1" />
-                              Reservado
+                              Reserved
                             </Badge>
                           </div>
                         )}
@@ -1057,11 +875,6 @@ function CampaignsPageContent() {
                   </Link>
                 );
               } catch (renderError) {
-                console.error(
-                  "🚨 Error rendering campaign:",
-                  campaign.id,
-                  renderError
-                );
                 return (
                   <div
                     key={campaign.id}
@@ -1082,176 +895,9 @@ function CampaignsPageContent() {
             })}
           </div>
 
-          {/* Contract Diagnostics Panel */}
-          {showDiagnostics && diagnostics && (
-            <div className="mt-6 p-4 bg-muted/30 border border-muted rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold">
-                  🔬 Contract Diagnostics
-                </h3>
-                <Button
-                  onClick={() => setShowDiagnostics(false)}
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs h-6 px-2"
-                >
-                  ✕
-                </Button>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <strong>Contract Available:</strong>{" "}
-                  <span
-                    className={
-                      diagnostics.contractAvailable
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }
-                  >
-                    {diagnostics.contractAvailable ? "✅ Yes" : "❌ No"}
-                  </span>
-                </div>
-                <div>
-                  <strong>Contract Healthy:</strong>{" "}
-                  <span
-                    className={
-                      diagnostics.contractHealthy
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }
-                  >
-                    {diagnostics.contractHealthy ? "✅ Yes" : "❌ No"}
-                  </span>
-                </div>
-                <div>
-                  <strong>Network:</strong>{" "}
-                  {diagnostics.networkInfo
-                    ? `${diagnostics.networkInfo.name} (${diagnostics.networkInfo.chainId})`
-                    : "Unknown"}
-                </div>
-                <div>
-                  <strong>Campaign Count:</strong>{" "}
-                  <span
-                    className={
-                      diagnostics.campaignCount > 0
-                        ? "text-green-600"
-                        : "text-amber-600"
-                    }
-                  >
-                    {diagnostics.campaignCount}
-                  </span>
-                </div>
-                <div>
-                  <strong>Contract Owner:</strong>{" "}
-                  <span className="font-mono text-xs">
-                    {diagnostics.contractOwner
-                      ? `${diagnostics.contractOwner.slice(
-                          0,
-                          6
-                        )}...${diagnostics.contractOwner.slice(-4)}`
-                      : "Unknown"}
-                  </span>
-                </div>
-                <div>
-                  <strong>Contract Code:</strong>{" "}
-                  <span
-                    className={
-                      diagnostics.contractCode &&
-                      diagnostics.contractCode !== "0x"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }
-                  >
-                    {diagnostics.contractCode &&
-                    diagnostics.contractCode !== "0x"
-                      ? "✅ Present"
-                      : "❌ Missing"}
-                  </span>
-                </div>
-              </div>
 
-              {diagnostics.errors && diagnostics.errors.length > 0 && (
-                <div className="mt-3">
-                  <strong className="text-red-600">Errors:</strong>
-                  <ul className="mt-1 list-disc list-inside text-xs text-red-600">
-                    {diagnostics.errors.map((error: string, index: number) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Campaign Details */}
-              {diagnostics.campaignDetails &&
-                diagnostics.campaignDetails.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-semibold mb-2">
-                      📋 Campaign Details:
-                    </h4>
-                    <div className="space-y-2">
-                      {diagnostics.campaignDetails.map((campaign, index) => (
-                        <div
-                          key={index}
-                          className="bg-muted/50 p-2 rounded text-xs"
-                        >
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <strong>ID:</strong> {campaign.id}
-                            </div>
-                            <div>
-                              <strong>Name:</strong> {campaign.name}
-                            </div>
-                            <div>
-                              <strong>Active:</strong>{" "}
-                              {campaign.isActive ? "✅ Yes" : "❌ No"}
-                            </div>
-                            <div>
-                              <strong>Prize Pool:</strong>{" "}
-                              {campaign.prizePoolETH} ETH
-                            </div>
-                            <div>
-                              <strong>Participants:</strong>{" "}
-                              {campaign.participantCount}
-                            </div>
-                            <div>
-                              <strong>Start:</strong>{" "}
-                              {new Date(
-                                campaign.startDate * 1000
-                              ).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              <div className="mt-3 pt-3 border-t border-muted">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    {diagnostics.campaignCount === 0
-                      ? "No campaigns found in the contract. This is normal if no campaigns have been created yet."
-                      : `Found ${diagnostics.campaignCount} campaigns in the contract. If they're not showing, there might be an issue with the data transformation.`}
-                  </p>
-                  {isConnected &&
-                    contractHealthy &&
-                    isSupported &&
-                    !needsSwitch && (
-                      <Button
-                        onClick={handleCreateTestCampaign}
-                        size="sm"
-                        variant="outline"
-                        className="text-xs h-7 px-2 ml-2"
-                        disabled={contractLoading}
-                      >
-                        🧪 Create Test
-                      </Button>
-                    )}
-                </div>
-              </div>
-            </div>
-          )}
+}
 
           {/* No Results */}
           {filteredCampaigns.length === 0 && (
@@ -1267,7 +913,7 @@ function CampaignsPageContent() {
                 contractCampaigns.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-2">
                     No campaigns are stored in the smart contract yet. Try
-                    running diagnostics to check the contract state.
+                    checking your wallet connection and network.
                   </p>
                 )}
             </div>
@@ -1290,8 +936,6 @@ export default function CampaignsPage() {
     <WalletErrorBoundary>
       <ErrorBoundary
         onError={(error, errorInfo) => {
-          console.error("🚨 Campaign page error:", error);
-          console.error("🚨 Error info:", errorInfo);
         }}
       >
         <CampaignsPageContent />

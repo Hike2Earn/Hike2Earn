@@ -103,7 +103,7 @@ const mendozaPeaks = [
   },
   {
     id: 4,
-    name: "Cerro Plata",
+    name: "Cerro el Plata",
     nameEnglish: "Silver Peak",
     distance: "120 km",
     altitude: "6,100m",
@@ -119,7 +119,7 @@ const mendozaPeaks = [
     description:
       "A beautiful peak offering excellent training for higher summits, with spectacular views of the Aconcagua massif.",
     history:
-      "Named for its silvery appearance when covered in snow, Cerro Plata was one of the earliest major peaks climbed in the region. It serves as an excellent acclimatization peak for Aconcagua attempts.",
+      "Named for its silvery appearance when covered in snow, Cerro el Plata was one of the earliest major peaks climbed in the region. It serves as an excellent acclimatization peak for Aconcagua attempts.",
     statistics: {
       successRate: "60%",
       averageDays: 10,
@@ -134,7 +134,7 @@ const mendozaPeaks = [
     distance: "180 km",
     altitude: "5,424m",
     difficulty: "intermediate",
-    technicalGrade: "F (Facile)",
+    technicalGrade: "E (Easy)",
     reward: "800 HIKE",
     coordinates: [-33.2333, -70.2167] as [number, number],
     firstAscent: { year: 1896, climbers: "Federico Reichert" },

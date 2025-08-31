@@ -149,14 +149,14 @@ export function AutoVerificationModal({
       const isUserRejected =
         error.message?.includes("user rejected") ||
         error.message?.includes("User rejected") ||
-        error.message?.includes("Transacción cancelada") ||
+        error.message?.includes("Transaction cancelled") ||
         error.code === 4001;
 
       if (isUserRejected) {
         // User cancelled the transaction - show friendly message and close
         setResult({
           success: false,
-          error: "Transacción cancelada por el usuario",
+          error: "Transaction cancelled by user",
         });
         // Close the modal after showing the message briefly
         setTimeout(() => {
@@ -165,11 +165,11 @@ export function AutoVerificationModal({
         }, 2000);
       } else {
         // For other errors, show a simplified message
-        let friendlyError = "Error en la verificación";
+        let friendlyError = "Verification error";
         if (error.message?.includes("insufficient funds")) {
-          friendlyError = "Fondos insuficientes para la transacción";
+          friendlyError = "Insufficient funds for transaction";
         } else if (error.message?.includes("network")) {
-          friendlyError = "Error de conexión de red";
+          friendlyError = "Network connection error";
         }
 
         setResult({
@@ -206,18 +206,18 @@ export function AutoVerificationModal({
               </div>
             </div>
 
-            <h3 className="text-2xl font-bold mb-2">¡Felicidades! 🎉</h3>
+            <h3 className="text-2xl font-bold mb-2">Congratulations! 🎉</h3>
             <p className="text-muted-foreground mb-4">
               {result.tokenId?.startsWith("verified_")
-                ? "Tu NFT fue creado exitosamente. La transacción se completó correctamente."
-                : "Tu verificación fue aprobada automáticamente"}
+                ? "Your NFT was created successfully. The transaction was completed correctly."
+                : "Your verification was approved automatically"}
             </p>
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center justify-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-green-400" />
                 <span className="text-green-400 font-medium">
-                  NFT Minteado Exitosamente
+                  NFT Minted Successfully
                 </span>
               </div>
 
@@ -234,14 +234,12 @@ export function AutoVerificationModal({
 
               <div className="flex items-center justify-center gap-2 p-3 bg-secondary/10 border border-secondary/20 rounded-lg">
                 <Sparkles className="w-5 h-5 text-secondary" />
-                <span className="text-secondary font-medium">
-                  Recompensas Enviadas
-                </span>
+                <span className="text-secondary font-medium">Rewards Sent</span>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Cerrando automáticamente...
+              Closing automatically...
             </p>
           </div>
         </DialogContent>
@@ -255,9 +253,7 @@ export function AutoVerificationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5" />
-            {type === "campaign"
-              ? "Verificar Participación"
-              : "Verificar Cumbre"}
+            {type === "campaign" ? "Verify Participation" : "Verify Summit"}
           </DialogTitle>
           <DialogDescription>
             {type === "campaign"
@@ -289,7 +285,7 @@ export function AutoVerificationModal({
           {/* Photo Upload Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h5 className="font-medium">Fotos de Verificación</h5>
+              <h5 className="font-medium">Verification Photos</h5>
               <Button
                 variant="outline"
                 size="sm"
@@ -297,7 +293,7 @@ export function AutoVerificationModal({
                 disabled={isProcessing}
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Subir Fotos
+                Upload Photos
               </Button>
             </div>
 
@@ -333,11 +329,9 @@ export function AutoVerificationModal({
             ) : (
               <div className="border-2 border-dashed border-muted/30 rounded-lg p-8 text-center">
                 <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">
-                  No hay fotos seleccionadas
-                </p>
+                <p className="text-muted-foreground mb-2">No photos selected</p>
                 <p className="text-sm text-muted-foreground">
-                  Haz clic en "Subir Fotos" para agregar evidencia
+                  Click "Upload Photos" to add evidence
                 </p>
               </div>
             )}
@@ -346,12 +340,12 @@ export function AutoVerificationModal({
           {/* Description */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Descripción (Opcional)
+              Description (Optional)
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe tu experiencia..."
+              placeholder="Describe your experience..."
               className="w-full p-3 bg-background border border-white/20 rounded-lg resize-none"
               rows={3}
               disabled={isProcessing}
@@ -363,7 +357,7 @@ export function AutoVerificationModal({
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-primary">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="font-medium">Procesando Verificación</span>
+                <span className="font-medium">Processing Verification</span>
               </div>
 
               <Progress value={verificationProgress} className="w-full" />
@@ -381,10 +375,10 @@ export function AutoVerificationModal({
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
               <div className="flex items-center gap-2 text-red-400">
                 <AlertCircle className="w-5 h-5" />
-                <span className="font-medium">Error en la Verificación</span>
+                <span className="font-medium">Verification Error</span>
               </div>
               <p className="text-sm text-red-300 mt-1">
-                {result.error || "Error desconocido"}
+                {result.error || "Unknown error"}
               </p>
             </div>
           )}
@@ -397,7 +391,7 @@ export function AutoVerificationModal({
               disabled={isProcessing}
               className="flex-1"
             >
-              Cancelar
+              Cancel
             </Button>
             <Button
               onClick={handleVerification}
@@ -407,12 +401,12 @@ export function AutoVerificationModal({
               {isProcessing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Procesando...
+                  Processing...
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Verificar y Mintear NFT
+                  Verify and Mint NFT
                 </>
               )}
             </Button>
@@ -424,12 +418,12 @@ export function AutoVerificationModal({
               <CheckCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-blue-400 font-medium mb-1">
-                  Verificación Automática
+                  Automatic Verification
                 </p>
                 <p className="text-blue-300">
-                  Tu verificación será procesada automáticamente. Una vez
-                  aprobado, tu NFT se creará exitosamente y la ventana se
-                  cerrará automáticamente.
+                  Your verification will be processed automatically. Once
+                  approved, your NFT will be created successfully and the window
+                  will close automatically.
                 </p>
               </div>
             </div>
