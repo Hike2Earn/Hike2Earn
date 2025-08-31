@@ -15,6 +15,7 @@ import {
   Plus,
   Wallet,
 } from "lucide-react";
+import Image from "next/image";
 import { CreateCampaignModal } from "@/components/create-campaign-modal";
 import { createCampaign } from "@/lib/campaign-utils";
 import { useHike2Earn } from "@/hooks/useHike2Earn";
@@ -24,7 +25,10 @@ import {
   NetworkSwitcher,
   useNetworkStatus,
 } from "@/components/network-switcher";
-import { WalletErrorBoundary, useWalletErrorHandler } from "@/components/wallet-error-boundary";
+import {
+  WalletErrorBoundary,
+  useWalletErrorHandler,
+} from "@/components/wallet-error-boundary";
 import { useWalletConflictResolver } from "@/hooks/useWalletConflictResolver";
 import { getNetworkDisplayInfo } from "@/lib/network-config";
 import Link from "next/link";
@@ -66,13 +70,13 @@ const allCampaigns: Campaign[] = [
     difficulty: "beginner",
     mountain: "Aconcagua",
     location: "Mendoza, Argentina",
-    startDate: "2025-01-15",
-    endDate: "2025-01-17",
+    startDate: "2025-12-15",
+    endDate: "2025-12-17",
     duration: "3 days",
     participants: 24,
     maxParticipants: 40,
     reward: 400,
-    image: "/cerros/aconcagua.jpg",
+    image: "/cerros/cerroAconcagua.jpg",
     elevation: "3,500m",
   },
   {
@@ -84,13 +88,13 @@ const allCampaigns: Campaign[] = [
     difficulty: "intermediate",
     mountain: "Cerro Plomo",
     location: "Santiago, Chile",
-    startDate: "2025-01-20",
-    endDate: "2025-01-20",
+    startDate: "2025-12-20",
+    endDate: "2025-12-20",
     duration: "1 day",
     participants: 15,
     maxParticipants: 25,
     reward: 350,
-    image: "/cerros/cerro-plomo.jpg",
+    image: "/cerros/cerroFranke.jpg",
     elevation: "5,424m",
   },
   {
@@ -102,13 +106,13 @@ const allCampaigns: Campaign[] = [
     difficulty: "beginner",
     mountain: "Various Trails",
     location: "Cordillera Central",
-    startDate: "2025-01-25",
-    endDate: "2025-01-25",
+    startDate: "2025-12-25",
+    endDate: "2025-12-25",
     duration: "6 hours",
     participants: 32,
     maxParticipants: 50,
     reward: 200,
-    image: "/cerros/trail-cleanup.jpg",
+    image: "/cerros/cerroLomasAmarillas.jpg",
     elevation: "2,100m",
   },
   {
@@ -120,13 +124,13 @@ const allCampaigns: Campaign[] = [
     difficulty: "advanced",
     mountain: "Volcán Villarrica",
     location: "Pucón, Chile",
-    startDate: "2025-02-01",
-    endDate: "2025-02-03",
+    startDate: "2026-01-01",
+    endDate: "2026-01-03",
     duration: "3 days",
     participants: 6,
     maxParticipants: 15,
     reward: 800,
-    image: "/cerros/volcan-villarrica.jpg",
+    image: "/cerros/volcanVillarica.jpg",
     elevation: "2,847m",
   },
   {
@@ -138,13 +142,13 @@ const allCampaigns: Campaign[] = [
     difficulty: "advanced",
     mountain: "Torres del Paine",
     location: "Patagonia, Chile",
-    startDate: "2025-02-10",
-    endDate: "2025-02-17",
+    startDate: "2026-01-10",
+    endDate: "2026-01-17",
     duration: "8 days",
     participants: 4,
     maxParticipants: 12,
     reward: 1200,
-    image: "/cerros/torres-del-paine.jpg",
+    image: "/cerros/torresDelPaine.jpg",
     elevation: "2,500m",
   },
   {
@@ -156,30 +160,70 @@ const allCampaigns: Campaign[] = [
     difficulty: "beginner",
     mountain: "Cerro San Cristóbal",
     location: "Santiago, Chile",
-    startDate: "2025-01-28",
-    endDate: "2025-01-28",
+    startDate: "2026-01-28",
+    endDate: "2026-01-28",
     duration: "4 hours",
     participants: 12,
     maxParticipants: 20,
     reward: 150,
-    image: "/cerros/cerro-san-cristobal.jpg",
+    image: "/cerros/cerroSanCristobal.jpg",
     elevation: "880m",
   },
+  {
+    id: "7",
+    title: "Cerro Adolfo Calle Challenge",
+    description:
+      "Technical climbing adventure on Cerro Adolfo Calle with stunning views of the Andes. Perfect for experienced climbers looking to test their skills on challenging terrain.",
+    type: "summit",
+    difficulty: "advanced",
+    mountain: "Cerro Adolfo Calle",
+    location: "Mendoza, Argentina",
+    startDate: "2026-02-15",
+    endDate: "2026-02-17",
+    duration: "3 days",
+    participants: 3,
+    maxParticipants: 8,
+    reward: 950,
+    image: "/cerros/cerroAdolfoCalle.jpg",
+    elevation: "4,218m",
+  },
+  {
+    id: "8",
+    title: "Cerro San Bernardo Circuit",
+    description:
+      "Multi-peak adventure exploring both Cerro San Bernardo summits. Experience high-altitude camping and breathtaking panoramic views of the surrounding valleys.",
+    type: "expedition",
+    difficulty: "advanced",
+    mountain: "Cerro San Bernardo",
+    location: "Mendoza, Argentina",
+    startDate: "2026-02-20",
+    endDate: "2026-02-25",
+    duration: "6 days",
+    participants: 5,
+    maxParticipants: 10,
+    reward: 1100,
+    image: "/cerros/cerroSanBernardo2.jpg",
+    elevation: "4,500m",
+  },
+  {
+    id: "9",
+    title: "Cerro Stepánek Summit",
+    description:
+      "Challenging ascent to Cerro Stepánek with technical climbing sections. Join our experienced team for this rewarding mountaineering expedition.",
+    type: "summit",
+    difficulty: "expert",
+    mountain: "Cerro Stepánek",
+    location: "Patagonia, Chile",
+    startDate: "2026-03-01",
+    endDate: "2026-03-05",
+    duration: "5 days",
+    participants: 2,
+    maxParticipants: 6,
+    reward: 1400,
+    image: "/cerros/cerroStepanek.jpg",
+    elevation: "3,200m",
+  },
 ];
-
-const typeColors = {
-  summit: "bg-primary/20 text-primary border-primary/30",
-  cleanup: "bg-green-500/20 text-green-400 border-green-500/30",
-  training: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  expedition: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-};
-
-const difficultyColors = {
-  beginner: "bg-green-500/20 text-green-400 border-green-500/30",
-  intermediate: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  advanced: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  expert: "bg-red-500/20 text-red-400 border-red-500/30",
-};
 
 function CampaignsPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -201,8 +245,16 @@ function CampaignsPageContent() {
   const { chainId, needsSwitch, isSupported } = useNetworkStatus();
 
   const { handleError } = useErrorHandler();
-  const { error: walletError, handleError: handleWalletError, retry: retryWallet } = useWalletErrorHandler();
-  const { status: conflictStatus, resolveConflicts, handleEvmAskError } = useWalletConflictResolver();
+  const {
+    error: walletError,
+    handleError: handleWalletError,
+    retry: retryWallet,
+  } = useWalletErrorHandler();
+  const {
+    status: conflictStatus,
+    resolveConflicts,
+    handleEvmAskError,
+  } = useWalletConflictResolver();
 
   // Memoize the campaign loading function to avoid dependency issues
   const loadContractCampaigns = useCallback(async () => {
@@ -217,12 +269,14 @@ function CampaignsPageContent() {
       contractHealthy,
       isSupported,
       needsSwitch,
-      chainId
+      chainId,
     });
 
     if (isConnected && contractHealthy && isSupported && !needsSwitch) {
       setIsLoadingCampaigns(true);
-      console.log("✅ All conditions met, starting to load contract campaigns...");
+      console.log(
+        "✅ All conditions met, starting to load contract campaigns..."
+      );
 
       try {
         console.log("🔄 Calling getAllCampaigns...");
@@ -232,7 +286,7 @@ function CampaignsPageContent() {
           campaigns,
           type: typeof campaigns,
           length: campaigns?.length,
-          isArray: Array.isArray(campaigns)
+          isArray: Array.isArray(campaigns),
         });
 
         if (!campaigns || !Array.isArray(campaigns)) {
@@ -247,57 +301,108 @@ function CampaignsPageContent() {
           return;
         }
 
+        // Available images from /cerros/ directory
+        const availableImages = [
+          "/cerros/cerroAconcagua.jpg",
+          "/cerros/cerroAdolfoCalle.jpg",
+          "/cerros/cerroFranke.jpg",
+          "/cerros/cerroLomasAmarillas.jpg",
+          "/cerros/cerroSanBernardo2.jpg",
+          "/cerros/cerroSanBernardo3.jpg",
+          "/cerros/cerroSanCristobal.jpg",
+          "/cerros/cerroStepanek.jpg",
+          "/cerros/san bernardo1.jpg",
+          "/cerros/torresDelPaine.jpg",
+          "/cerros/volcanVillarica.jpg",
+        ];
+
         // Convert contract campaigns to UI format
-        const formattedCampaigns: Campaign[] = campaigns.map((campaign, index) => {
-          console.log(`🔄 Formatting campaign ${index}:`, campaign);
-          
-          return {
-            id: `contract-${campaign.id}`,
-            title: campaign.name || `Blockchain Campaign #${campaign.id}`,
-            description: `Blockchain mountain climbing campaign with ${campaign.prizePoolLSK} LSK prize pool. Complete the challenge and earn rewards through our smart contract system!`,
-            type: "summit" as const,
-            difficulty: "intermediate" as const,
-            mountain: "Smart Contract Peak",
-            location: "Lisk Blockchain",
-            startDate: new Date(campaign.startDate * 1000)
-              .toISOString()
-              .split("T")[0],
-            endDate: new Date(campaign.endDate * 1000)
-              .toISOString()
-              .split("T")[0],
-            duration:
-              Math.ceil(
-                (campaign.endDate - campaign.startDate) / (24 * 60 * 60)
-              ) + " days",
-            participants: campaign.participantCount,
-            maxParticipants: Math.max(campaign.participantCount + 10, 50),
-            reward: Math.floor(parseFloat(campaign.prizePoolLSK) * 100),
-            image: "/campaigns/contract-campaign.jpg",
-            elevation: "Blockchain Height",
-          };
+        const formattedCampaigns: Campaign[] = campaigns.map(
+          (campaign, index) => {
+            console.log(
+              `🔄 Formatting campaign ${index} (ID: ${campaign.id}):`,
+              campaign
+            );
+
+            // Use a different image for each campaign based on its index
+            const imageIndex = index % availableImages.length;
+            const campaignImage = availableImages[imageIndex];
+
+            console.log(
+              `🎨 Assigning image to campaign ${campaign.id}: ${campaignImage}`
+            );
+
+            return {
+              id: `contract-${campaign.id}`,
+              title: campaign.name || `Mountain Campaign #${campaign.id}`,
+              description: `Mountain climbing campaign with ${campaign.prizePoolLSK} LSK prize pool. Complete the challenge and earn rewards!`,
+              type: "summit" as const,
+              difficulty: "intermediate" as const,
+              mountain: "Blockchain Mountain",
+              location: "Lisk Blockchain",
+              startDate: new Date(campaign.startDate * 1000)
+                .toISOString()
+                .split("T")[0],
+              endDate: new Date(campaign.endDate * 1000)
+                .toISOString()
+                .split("T")[0],
+              duration:
+                Math.ceil(
+                  (campaign.endDate - campaign.startDate) / (24 * 60 * 60)
+                ) + " days",
+              participants: campaign.participantCount,
+              maxParticipants: Math.max(campaign.participantCount + 10, 50),
+              reward: Math.floor(parseFloat(campaign.prizePoolLSK) * 100),
+              image: campaignImage,
+              elevation: "Blockchain Height",
+            };
+          }
+        );
+
+        console.log(
+          `✅ Successfully formatted ${formattedCampaigns.length} contract campaigns:`,
+          formattedCampaigns
+        );
+
+        // Log final campaign data for debugging
+        formattedCampaigns.forEach((campaign, idx) => {
+          console.log(`📋 Final Campaign ${idx}:`, {
+            id: campaign.id,
+            title: campaign.title,
+            image: campaign.image,
+            type: campaign.type,
+            difficulty: campaign.difficulty,
+          });
         });
 
-        console.log(`✅ Successfully formatted ${formattedCampaigns.length} contract campaigns:`, formattedCampaigns);
         setContractCampaigns(formattedCampaigns);
       } catch (error) {
         console.error("❌ Failed to load contract campaigns:", error);
         console.error("❌ Error details:", {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined
+          message: error instanceof Error ? error.message : "Unknown error",
+          stack: error instanceof Error ? error.stack : undefined,
         });
         setContractCampaigns([]); // Clear campaigns on error
-        
+
         // Handle different types of errors gracefully
         if (error instanceof Error) {
-          if (error.message.includes("Unexpected error") || error.message.includes("evmAsk.js") || error.message.includes("selectExtension")) {
-            console.warn("⚠️ Phantom wallet conflict detected, attempting resolution...");
+          if (
+            error.message.includes("Unexpected error") ||
+            error.message.includes("evmAsk.js") ||
+            error.message.includes("selectExtension")
+          ) {
+            console.warn(
+              "⚠️ Phantom wallet conflict detected, attempting resolution..."
+            );
             handleWalletError(error);
-            
+
             // Try to handle evmAsk error specifically
             try {
               const resolvedProvider = await handleEvmAskError(error);
               if (resolvedProvider) {
-                console.log("✅ Provider conflict resolved, retrying campaign load...");
+                console.log(
+                  "✅ Provider conflict resolved, retrying campaign load..."
+                );
                 setTimeout(() => loadContractCampaigns(), 1500);
               } else if (retryCount < 2) {
                 // Fallback: try conflict resolution
@@ -306,13 +411,16 @@ function CampaignsPageContent() {
                   setTimeout(() => loadContractCampaigns(), 2000);
                 } else if (retryCount < 2) {
                   setTimeout(() => {
-                    setRetryCount(prev => prev + 1);
+                    setRetryCount((prev) => prev + 1);
                     loadContractCampaigns();
                   }, 3000 * (retryCount + 1));
                 }
               }
             } catch (resolveError) {
-              console.error("❌ Failed to resolve wallet conflict:", resolveError);
+              console.error(
+                "❌ Failed to resolve wallet conflict:",
+                resolveError
+              );
             }
           } else if (error.message.includes("user rejected")) {
             console.warn("⚠️ User rejected wallet connection");
@@ -349,7 +457,7 @@ function CampaignsPageContent() {
     loadContractCampaigns();
   }, [loadContractCampaigns]); // Now using the memoized function
 
-  // Combine default campaigns, user-created campaigns, and contract campaigns
+  // Combine all available campaigns
   const allAvailableCampaigns = [
     ...allCampaigns,
     ...userCampaigns,
@@ -484,8 +592,6 @@ function CampaignsPageContent() {
               in the Andes.
             </p>
 
-
-
             {/* Contract Status Info - Network Wrong */}
             {isConnected &&
               contractHealthy &&
@@ -498,12 +604,12 @@ function CampaignsPageContent() {
                         🌐 Network Switch Required
                       </span>
                       <p className="text-xs text-muted-foreground/80 mt-0.5">
-                        Switch to Lisk Sepolia to access live blockchain
-                        campaigns
+                        Switch to Lisk Sepolia to access all available campaigns
                       </p>
                       <p className="text-xs text-muted-foreground/80 mt-1">
-                        Currently showing {allCampaigns.length} featured campaigns
-                        (blockchain campaigns will load when connected to Lisk Sepolia)
+                        Currently showing {allCampaigns.length} featured
+                        campaigns (more campaigns will load when connected to
+                        Lisk Sepolia)
                       </p>
                     </div>
                   </div>
@@ -524,7 +630,7 @@ function CampaignsPageContent() {
                         "Unable to connect to smart contract. Some features may be limited."}
                     </p>
                     <p className="text-xs text-muted-foreground/80 mt-1">
-                      Showing {allCampaigns.length} featured campaigns only
+                      Showing {allCampaigns.length} featured campaigns
                     </p>
                   </div>
                 </div>
@@ -541,7 +647,7 @@ function CampaignsPageContent() {
                       Wallet Not Connected
                     </span>
                     <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      Connect your wallet to view live contract campaigns and
+                      Connect your wallet to view all available campaigns and
                       create new ones.
                     </p>
                   </div>
@@ -636,34 +742,27 @@ function CampaignsPageContent() {
                 <div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl overflow-hidden hover:bg-white/15 transition-all duration-300 group cursor-pointer">
                   {/* Campaign Image */}
                   <div className="relative h-48 overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-br from-primary/30 to-secondary/20" />
+                    <Image
+                      src={campaign.image}
+                      alt={campaign.title}
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        console.error(
+                          `❌ Failed to load campaign image: ${campaign.image}`
+                        );
+                        // Fallback to gradient if image fails to load
+                        e.currentTarget.style.display = "none";
+                      }}
+                      onLoad={() => {
+                        console.log(
+                          `✅ Successfully loaded campaign image: ${campaign.image}`
+                        );
+                      }}
+                    />
+                    {/* Fallback gradient if image fails */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/20 opacity-0" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                    {/* Badges */}
-                    <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-                      <Badge className={`text-xs ${typeColors[campaign.type]}`}>
-                        {campaign.type.charAt(0).toUpperCase() +
-                          campaign.type.slice(1)}
-                      </Badge>
-                      <Badge
-                        className={`text-xs ${
-                          difficultyColors[campaign.difficulty]
-                        }`}
-                      >
-                        {campaign.difficulty.charAt(0).toUpperCase() +
-                          campaign.difficulty.slice(1)}
-                      </Badge>
-                      {campaign.id.startsWith("contract-") && (
-                        <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
-                          🔗 On-Chain
-                        </Badge>
-                      )}
-                      {campaign.id.startsWith("user-") && (
-                        <Badge className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
-                          👤 User Created
-                        </Badge>
-                      )}
-                    </div>
 
                     {/* Mountain info overlay */}
                     <div className="absolute bottom-3 left-3 text-white">
