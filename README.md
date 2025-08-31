@@ -76,6 +76,15 @@ Hike2Earn offers an innovative solution by rewarding climbers for exploring less
 - **Transactions**: Token and reward history
 - **Leaderboards**: Climber rankings
 
+### 💼 Business Model – Hike2Earn
+- ** 1. 🏢 Sponsors & Campaigns
+Finance sponsored challenges with HIKE token prize pools.
+Gain brand visibility and connect with an active outdoor community.
+Fuel the ecosystem by rewarding genuine verified achievements.
+- ** 2. 👥 Users & Subscriptions (Freemium Model)
+Free Access: Join campaigns, earn HIKE tokens, participate in the community.
+Premium Subscription: Unlock global & personalized leaderboards, advanced stats, and enhanced social features.
+
 ## 🎯 Featured Mountains
 
 The platform includes iconic mountains from the Andes:
