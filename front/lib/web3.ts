@@ -655,7 +655,7 @@ export const createCampaignOnChain = async (
         }
       }
 
-      // If there's an LSK prize pool, sponsor the campaign
+      // If there's a HIKE prize pool, sponsor the campaign
       if (campaignData.prizePoolLSK > 0) {
         console.log("💰 Sponsoring campaign with LSK...");
         const sponsorTx = await hike2EarnContract.sponsorCampaign(

@@ -359,7 +359,7 @@ function CampaignsPageContent() {
             return {
               id: `contract-${campaign.id}`,
               title: campaign.name || `Mountain Campaign #${campaign.id}`,
-              description: `Mountain climbing campaign with ${campaign.prizePoolLSK} LSK prize pool. Complete the challenge and earn rewards!`,
+              description: `Mountain climbing campaign with ${campaign.prizePoolLSK} HIKE prize pool. Complete the challenge and earn rewards!`,
               type: "summit" as const,
               difficulty: "intermediate" as const,
               mountain: "Blockchain Mountain",

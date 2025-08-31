@@ -177,7 +177,7 @@ export function CreateCampaignModal({
     }
 
     if (!formData.prizePoolLSK || parseFloat(formData.prizePoolLSK) <= 0) {
-      newErrors.prizes = "LSK prize pool must be greater than 0";
+      newErrors.prizes = "HIKE prize pool must be greater than 0";
     }
 
     setErrors(newErrors);
@@ -632,7 +632,7 @@ export function CreateCampaignModal({
             {/* LSK Prize */}
             <div>
               <Label htmlFor="lskPrize" className="text-gray-700 text-sm">
-                LSK Prize Pool
+                HIKE Prize Pool
               </Label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -644,7 +644,7 @@ export function CreateCampaignModal({
                   onChange={(e) =>
                     handleInputChange("prizePoolLSK", e.target.value)
                   }
-                  placeholder="Enter amount in LSK"
+                  placeholder="Enter amount in HIKE"
                   className="pl-10 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
               </div>
